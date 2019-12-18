@@ -1,4 +1,6 @@
-# DeepView
+# DeepView - Classification visualization
+
+This is an implementation of the DeepView framework that was presented in this paper: https://arxiv.org/abs/1909.09154
 
 ## Requirements
 
