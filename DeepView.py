@@ -23,6 +23,7 @@ class DeepView:
 
 		TODO: 
 		  * allow all data shapes
+		  * make robust to different inputs and classifiers
 		'''
 
 		self.model = pred_fn
@@ -154,7 +155,7 @@ class DeepView:
 		h = np.clip(h*1.2, 0, 1)
 		color = color[:,0:3]
 		color = (1-h)*(0.5*color) + h*np.ones(color.shape, dtype=np.uint8)
-		decision_view = color.reshape(100, 100, 3)
+		decision_view = color.reshape(self.resolution, self.resolution, 3)
 		return decision_view
 
 	def show(self):

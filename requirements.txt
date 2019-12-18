@@ -3,3 +3,4 @@ numpy>=1.17.4
 scikit-learn>=0.22
 scipy>=1.4.0
 umap-learn>=0.3.10
+PyQt5>=5.13.2
