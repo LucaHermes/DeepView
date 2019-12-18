@@ -1,3 +1,10 @@
+# don't push example data - it gets downloaded automatically anyways
+data/
+
+
+
+# -------- Default Python-gitignore --------
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
