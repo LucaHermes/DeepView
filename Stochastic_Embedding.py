@@ -1,3 +1,9 @@
+# Based on code of Leland McInnes
+#
+# License: BSD 3 clause
+
+
+
 from numba import jit, prange
 import numpy as np
 from sklearn.base import BaseEstimator
