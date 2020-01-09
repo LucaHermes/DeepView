@@ -54,10 +54,7 @@ def predict_many(model, x, n_classes, batch_size):
 	np_preds = preds.reshape([*orig_shape[:-3], n_classes])
 	return np_preds
 
-def distance_row(model, x, y, n, lam):
-	N_CLASSES = 10
-	BATCH_SIZE = 64
-
+def distance_row(model, x, y, n, lam, batch_size, n_classes):
 	y = y[:,np.newaxis]
 	
 	steps = np.arange(n)
@@ -66,8 +63,8 @@ def distance_row(model, x, y, n, lam):
 	p_prev = p_ni_row(x, y, n, sprev)
 	p_i = p_ni_row(x, y, n, steps)
 	
-	djs = d_js(predict_many(model, p_prev, N_CLASSES, BATCH_SIZE),
-			   predict_many(model, p_i, N_CLASSES, BATCH_SIZE), axis=2)
+	djs = d_js(predict_many(model, p_prev, n_classes, batch_size),
+			   predict_many(model, p_i, n_classes, batch_size), axis=2)
 	
 	d_p = np.sqrt(np.abs(djs))
 	#d_p = np.abs(djs)
@@ -80,7 +77,7 @@ def distance_row(model, x, y, n, lam):
 	
 	return dist.sum(axis=1)
 
-def calculate_fisher(model, from_samples, to_samples, N, lam):
+def calculate_fisher(model, from_samples, to_samples, n, lam, batch_size, n_classes):
 
 	n_xs = len(from_samples)
 	n_ys = len(to_samples)
@@ -96,7 +93,7 @@ def calculate_fisher(model, from_samples, to_samples, N, lam):
 		row_distances = np.zeros(n_ys)
 		
 		if len(ys) != 0:
-			row_distances[i+1:] = distance_row(model, x, ys, N, lam)
+			row_distances[i+1:] = distance_row(model, x, ys, n, lam, batch_size, n_classes)
 
 		distances[i] = row_distances
 

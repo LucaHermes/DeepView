@@ -4,9 +4,6 @@ import matplotlib.pyplot as plt
 from scipy.special import softmax
 from fisher_metric import calculate_fisher
 
-N = 20
-lam = 0.00001
-
 # N = 30
 # lam = 0.0001
 # no sqrt for eucl dist
@@ -14,7 +11,7 @@ lam = 0.00001
 class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, img_size, 
-				 img_channels, resolution=100, cmap='tab10'):
+				 img_channels, n=20, lam=0.00001, resolution=100, cmap='tab10'):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
@@ -24,6 +21,37 @@ class DeepView:
 		TODO: 
 		  * allow all data shapes
 		  * make robust to different inputs and classifiers
+		
+		Parameters
+		----------
+		pred_fn	: callable, function
+			Function that takes a single argument, which is data to be classified
+			and returns the prediction logits of the model. 
+			For an example, see the demo jupyter notebook
+			https://github.com/LucaHermes/DeepView/blob/master/DeepView%20Demo.ipynb
+		classes	: list, tuple of str
+			All classes that the classifier uses as a list/tuple of strings. 
+		max_samples	: int
+			The maximum number of data samples that this class keeps for visualization.
+			If the number of data samples passed via 'add_samples' exceeds this limit, 
+			the oldest samples are deleted first.
+		batch_size : int
+			Batch size to use when calling the classifier
+		img_size : int
+			Currently only square images are supported as inputs, img size specifies 
+			width and height of the input samples.
+		img_channels : int
+			Number of image channels.
+		n : int
+			Number of interpolations for distance calculation of two images.
+		lam : float
+			Weighting factor for the euclidian component of the distance calculation.
+		resolution : int
+			Resolution of the visualization of the classification boundaries.
+		cmap : str
+			Name of the colormap to use for visualization. 
+			The number of distinguishable colors should correspond to n_classes.
+			See here for the names: https://matplotlib.org/3.1.1/gallery/color/colormap_reference.html
 		'''
 
 		self.model = pred_fn
@@ -33,6 +61,8 @@ class DeepView:
 		self.batch_size = batch_size
 		self.img_size = img_size
 		self.img_channels = img_channels
+		self.n = n
+		self.lam = lam
 		self.resolution = resolution
 		self.cmap = plt.get_cmap(cmap)
 		self.distances = np.array([])
@@ -102,7 +132,8 @@ class DeepView:
 		# calculate new distances
 		xs = samples
 		ys = self.samples
-		new_distances = calculate_fisher(self.model, xs, ys, N, lam)
+		new_distances = calculate_fisher(self.model, xs, ys, self.n, self.lam, 
+			self.batch_size, self.n_classes)
 
 		# add new distances
 		old_distances = np.triu(self.distances, k=1)
