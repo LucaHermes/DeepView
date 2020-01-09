@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 from scipy.special import softmax
 from fisher_metric import calculate_fisher
 
-# N = 30
-# lam = 0.0001
+# N = 10
+# lam = 0.00001
 # no sqrt for eucl dist
 
 class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, img_size, 
-				 img_channels, n=20, lam=0.00001, resolution=100, cmap='tab10'):
+				 img_channels, n=10, lam=0.0001, resolution=100, cmap='tab10'):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
