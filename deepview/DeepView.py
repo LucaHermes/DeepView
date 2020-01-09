@@ -1,5 +1,5 @@
 import numpy as np
-from embeddings import create_mappings
+from deepview.embeddings import create_mappings
 import matplotlib.pyplot as plt
 from scipy.special import softmax
 from fisher_metric import calculate_fisher

@@ -1,5 +1,5 @@
 import umap
-import Stochastic_Embedding as stocemb
+import deepview.Stochastic_Embedding as stocemb
 import numpy as np
 
 def embed(distances, seed=42):
