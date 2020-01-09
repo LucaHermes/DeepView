@@ -1,8 +1,9 @@
-import numpy as np
 from deepview.embeddings import create_mappings
+from deepview.fisher_metric import calculate_fisher
+
 import matplotlib.pyplot as plt
 from scipy.special import softmax
-from fisher_metric import calculate_fisher
+import numpy as np
 
 # N = 10
 # lam = 0.00001
