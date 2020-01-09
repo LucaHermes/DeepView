@@ -10,7 +10,7 @@ from fisher_metric import calculate_fisher
 
 class DeepView:
 
-	def __init__(self, pred_fn, classes, max_samples, batch_size, img_size, 
+	def __init__(self, pred_fn, classes, max_samples, batch_size, img_shape, 
 				 img_channels, n=10, lam=0.0001, resolution=100, cmap='tab10'):
 		'''
 		This class can be used to embed high dimensional data in
@@ -37,9 +37,8 @@ class DeepView:
 			the oldest samples are deleted first.
 		batch_size : int
 			Batch size to use when calling the classifier
-		img_size : int
-			Currently only square images are supported as inputs, img size specifies 
-			width and height of the input samples.
+		img_shape : tuple, list (int)
+			Width and height of the input samples.
 		img_channels : int
 			Number of image channels.
 		n : int
@@ -59,14 +58,14 @@ class DeepView:
 		self.n_classes = len(classes)
 		self.max_samples = max_samples
 		self.batch_size = batch_size
-		self.img_size = img_size
+		self.img_shape = img_shape
 		self.img_channels = img_channels
 		self.n = n
 		self.lam = lam
 		self.resolution = resolution
 		self.cmap = plt.get_cmap(cmap)
 		self.distances = np.array([])
-		self.samples = np.empty([0, img_channels, img_size, img_size])
+		self.samples = np.empty([0, img_channels, *img_shape])
 		self.embedded = np.empty([0, 2])
 		self.y_true = np.array([])
 		self.y_pred = np.array([])
@@ -148,7 +147,7 @@ class DeepView:
 		# update mappings
 		print('Embedding samples ...')
 		self.embedded, self.inverse = create_mappings(
-			self.distances, self.samples, self.img_size, self.img_channels)
+			self.distances, self.samples, self.img_shape, self.img_channels)
 
 		self.classifier_view = self.compute_grid()
 

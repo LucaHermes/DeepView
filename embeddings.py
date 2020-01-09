@@ -14,10 +14,10 @@ def embed(distances, seed=42):
 
 	return embedding
 
-def get_inverse_mapper(samples, embedded, image_size, channels, n_bins=100):
+def get_inverse_mapper(samples, embedded, image_shape, channels, n_bins=100):
 	SCALE = 1.1
 
-	x_flat = np.reshape(samples, [-1, image_size**2 * channels])
+	x_flat = np.reshape(samples, [-1, np.multiply(*image_shape) * channels])
 	
 	ebd_min = np.min(embedded, axis=0)
 	ebd_max = np.max(embedded, axis=0)
@@ -32,11 +32,11 @@ def get_inverse_mapper(samples, embedded, image_size, channels, n_bins=100):
 
 	return embd
 
-def create_mappings(distances, samples, image_size, channels):
+def create_mappings(distances, samples, image_shape, channels):
 	embedded = embed(distances)
-	inv = get_inverse_mapper(samples, embedded, image_size, channels)
+	inv = get_inverse_mapper(samples, embedded, image_shape, channels)
 
-	img_shape = [-1, channels, image_size, image_size]
+	img_shape = [-1, channels, *image_shape]
 	map_to_img = lambda ebd: inv.transform(ebd).reshape(img_shape)
 
 	return embedded, map_to_img

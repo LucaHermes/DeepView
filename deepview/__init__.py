@@ -1,1 +1,1 @@
-from DeepView import DeepView
+from deepview.DeepView import DeepView
