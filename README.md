@@ -9,7 +9,7 @@ To run the notebook, ```torch==1.3.1``` and ```torchvision==0.4.2``` are require
 
 ## Usage Instructions
 
- 1. Create a wrapper funktion like ```pred_wrapper``` which receives a numpy array of samples and returns according class probabilities from the classifier as numpy arrays
+ 1. Create a wrapper funktion (like ```pred_wrapper``` in the Demo notebook) which receives a numpy array of samples and returns according class probabilities from the classifier as numpy arrays
  2. Initialize DeepView-object and pass the created method to the constructor
  3. Run your code and call ```add_samples(samples, labels)``` at any time to add samples to the visualization together with the ground truth labels.
     * The ground truth labels will be visualized along with the predicted labels
