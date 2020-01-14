@@ -65,7 +65,8 @@ class DeepView:
 		self.lam = lam
 		self.resolution = resolution
 		self.cmap = plt.get_cmap(cmap)
-		self.distances = np.array([])
+		self.discr_distances = np.array([])
+		self.eucl_distances = np.array([])
 		self.samples = np.empty([0, img_channels, *img_shape])
 		self.embedded = np.empty([0, 2])
 		self.y_true = np.array([])
@@ -76,6 +77,12 @@ class DeepView:
 	@property
 	def num_samples(self):
 		return len(self.samples)
+
+	@property
+	def distances(self):
+		eucl = self.eucl_distances * self.lam
+		stacked = np.dstack((self.discr_distances, eucl))
+		return stacked.sum(-1)
 
 	def _get_plot_measures(self):
 		ebd_min = np.min(self.embedded, axis=0)
@@ -114,6 +121,14 @@ class DeepView:
 	def to_probs(self, logits):
 		return softmax(logits, axis=-1)
 
+	def update_matrix(self, old_matrix, new_values, n_new, n_keep):
+		to_triu = np.triu(old_matrix, k=1)
+		new_mat = np.zeros([self.num_samples, self.num_samples])
+		new_mat[n_new:,n_new:] = old_matrix[:n_keep,:n_keep]
+		new_mat[:n_new] = new_values
+		# update the old distance matrix
+		return new_mat + new_mat.transpose()
+
 	def add_samples(self, samples, labels):
 		'''
 		Adds samples points to the visualization.
@@ -132,18 +147,16 @@ class DeepView:
 		# calculate new distances
 		xs = samples
 		ys = self.samples
-		new_distances = calculate_fisher(self.model, xs, ys, self.n, self.lam, 
+		new_discr, new_eucl = calculate_fisher(self.model, xs, ys, self.n, 
 			self.batch_size, self.n_classes)
 
 		# add new distances
-		old_distances = np.triu(self.distances, k=1)
-		distances = np.zeros([self.num_samples, self.num_samples])
-		n_old = len(self.distances)
+		update = zip([self.discr_distances, self.eucl_distances], [new_discr, new_eucl])
+		n_keep = self.max_samples - n_new
 
-		keep_dists = self.max_samples - n_new
-		distances[n_new:,n_new:] = old_distances[:keep_dists,:keep_dists]
-		distances[:n_new] = new_distances
-		self.distances = distances + distances.transpose()
+		# apply the same steps to
+		self.discr_distances = update_matrix(self.discr_distances, new_discr, n_new, n_keep)
+		self.eucl_distances = update_matrix(self.eucl_distances, new_eucl, n_new, n_keep)
 
 		# update mappings
 		print('Embedding samples ...')

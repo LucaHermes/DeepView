@@ -54,7 +54,7 @@ def predict_many(model, x, n_classes, batch_size):
 	np_preds = preds.reshape([*orig_shape[:-3], n_classes])
 	return np_preds
 
-def distance_row(model, x, y, n, lam, batch_size, n_classes):
+def distance_row(model, x, y, n, batch_size, n_classes):
 	y = y[:,np.newaxis]
 	
 	steps = np.arange(n)
@@ -66,41 +66,50 @@ def distance_row(model, x, y, n, lam, batch_size, n_classes):
 	djs = d_js(predict_many(model, p_prev, n_classes, batch_size),
 			   predict_many(model, p_i, n_classes, batch_size), axis=2)
 	
-	d_p = np.sqrt(np.abs(djs))
-	#d_p = np.abs(djs)
-	dis = d_s(p_prev, p_i, axis=(2, 3, 4))
+	# distance measure based on classification
+	discriminative = np.sqrt(np.abs(djs))
+	# euclidian distance measure based on structural differences
+	euclidian = d_s(p_prev, p_i, axis=(2, 3, 4))
 	#dist = d_p + lam * dis
-	dist = d_p + lam * dis
 	
 	if (djs < 0).any():
 		print('[WARNING]: Potential NaN detected.')
 	
-	return dist.sum(axis=1)
+	return discriminative.sum(axis=1), euclidian.sum(axis=1)
 
-def calculate_fisher(model, from_samples, to_samples, n, lam, batch_size, n_classes):
+def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
 
 	n_xs = len(from_samples)
 	n_ys = len(to_samples)
 
-	distances = np.zeros([n_xs, n_ys])
+	# arrays to store distance
+	#  1. discriminative distance of classification
+	#  2. euclidian (structural) distance in data
+	discr_distances = np.zeros([n_xs, n_ys])
+	eucl_distances = np.zeros([n_xs, n_ys])
 
 	for i in range(n_xs):
 
 		x = from_samples[i]
-		x = x[np.newaxis] #torch.unsqueeze(x, 0).to(device)
+		x = x[np.newaxis]
 		ys = to_samples[i+1:]
 	
-		row_distances = np.zeros(n_ys)
+		disc_row = np.zeros(n_ys)
+		eucl_row = np.zeros(n_ys)
 		
 		if len(ys) != 0:
-			row_distances[i+1:] = distance_row(model, x, ys, n, lam, batch_size, n_classes)
+			discr, euclidian = distance_row(model, x, ys, n, batch_size, n_classes)
+			disc_row[i+1:] = discr
+			eucl_row[i+1:] = euclidian
 
-		distances[i] = row_distances
+		discr_distances[i] = disc_row
+		eucl_distances[i] = euclidian
 
 		if (i+1) % (n_xs//5) == 0:
 			print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
 
-	return distances
+	return discr_distances, eucl_distances
+
 """def calculate_fisher(model, xs, ys, N, lam):
 
 	n_samples = len(samples)
