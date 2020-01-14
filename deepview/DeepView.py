@@ -84,6 +84,10 @@ class DeepView:
 		stacked = np.dstack((self.discr_distances, eucl))
 		return stacked.sum(-1)
 
+	def set_lambda(self, lam):
+		self.lam = lam
+		self.update_mappings()
+
 	def _get_plot_measures(self):
 		ebd_min = np.min(self.embedded, axis=0)
 		ebd_max = np.max(self.embedded, axis=0)
@@ -124,10 +128,17 @@ class DeepView:
 	def update_matrix(self, old_matrix, new_values, n_new, n_keep):
 		to_triu = np.triu(old_matrix, k=1)
 		new_mat = np.zeros([self.num_samples, self.num_samples])
-		new_mat[n_new:,n_new:] = old_matrix[:n_keep,:n_keep]
+		new_mat[n_new:,n_new:] = to_triu[:n_keep,:n_keep]
 		new_mat[:n_new] = new_values
 		# update the old distance matrix
 		return new_mat + new_mat.transpose()
+
+	def update_mappings(self):
+		print('Embedding samples ...')
+		self.embedded, self.inverse = create_mappings(
+			self.distances, self.samples, self.img_shape, self.img_channels)
+
+		self.classifier_view = self.compute_grid()
 
 	def add_samples(self, samples, labels):
 		'''
@@ -151,19 +162,12 @@ class DeepView:
 			self.batch_size, self.n_classes)
 
 		# add new distances
-		update = zip([self.discr_distances, self.eucl_distances], [new_discr, new_eucl])
 		n_keep = self.max_samples - n_new
-
-		# apply the same steps to
-		self.discr_distances = update_matrix(self.discr_distances, new_discr, n_new, n_keep)
-		self.eucl_distances = update_matrix(self.eucl_distances, new_eucl, n_new, n_keep)
+		self.discr_distances = self.update_matrix(self.discr_distances, new_discr, n_new, n_keep)
+		self.eucl_distances = self.update_matrix(self.eucl_distances, new_eucl, n_new, n_keep)
 
 		# update mappings
-		print('Embedding samples ...')
-		self.embedded, self.inverse = create_mappings(
-			self.distances, self.samples, self.img_shape, self.img_channels)
-
-		self.classifier_view = self.compute_grid()
+		self.update_mappings()
 
 	def compute_grid(self):
 		print('Computing decision regions ...')

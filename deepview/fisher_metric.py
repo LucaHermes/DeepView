@@ -103,7 +103,7 @@ def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
 			eucl_row[i+1:] = euclidian
 
 		discr_distances[i] = disc_row
-		eucl_distances[i] = euclidian
+		eucl_distances[i] = eucl_row
 
 		if (i+1) % (n_xs//5) == 0:
 			print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
