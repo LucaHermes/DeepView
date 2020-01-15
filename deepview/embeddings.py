@@ -8,16 +8,15 @@ def embed(distances, seed=42):
 	mapper = umap.UMAP(metric="precomputed", n_neighbors=N_NEIGBORS, 
                          random_state=seed, spread=2, min_dist=1)
 
-
 	mapper = mapper.fit(distances) 
 	embedding = mapper.transform(distances)
 
 	return embedding
 
-def get_inverse_mapper(samples, embedded, image_shape, channels, n_bins=100):
+def get_inverse_mapper(samples, embedded, data_shape, n_bins=100):
 	SCALE = 1.1
-
-	x_flat = np.reshape(samples, [-1, np.multiply(*image_shape) * channels])
+	flat_dim = np.prod(data_shape)
+	x_flat = np.reshape(samples, [-1, flat_dim])
 	
 	ebd_min = np.min(embedded, axis=0)
 	ebd_max = np.max(embedded, axis=0)
@@ -32,11 +31,11 @@ def get_inverse_mapper(samples, embedded, image_shape, channels, n_bins=100):
 
 	return embd
 
-def create_mappings(distances, samples, image_shape, channels):
+def create_mappings(distances, samples, data_shape):
 	embedded = embed(distances)
-	inv = get_inverse_mapper(samples, embedded, image_shape, channels)
+	inv = get_inverse_mapper(samples, embedded, data_shape)
 
-	img_shape = [-1, channels, *image_shape]
-	map_to_img = lambda ebd: inv.transform(ebd).reshape(img_shape)
+	data_shape = [-1, *data_shape]
+	map_to_sample = lambda ebd: inv.transform(ebd).reshape(data_shape)
 
-	return embedded, map_to_img
+	return embedded, map_to_sample
