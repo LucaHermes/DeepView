@@ -22,11 +22,19 @@ The following parameters must be specified on initialization:
 | Variable    | Meaning             |
 |----------------------|-------------------|
 | ```pred_wrapper```    | To enable DeepView to call the classifier |
+| ```classes```          | All possible classes in the data |
 | ```max_samples```      | The maximum amount of samples that DeepView will keep track of |
-| ```img_size```         | Currently only images are supported as inputs, img size specifies width and height of the input samples |
-| ```img_channels```     | Number of image channels |
+| ```batch_size```       | The maximal size of batches that are passed to the classifier (the ```pred_wrapper```-function) |
+| ```data_shape```       | Shape of the input data (complete shape; for images, include the channel dimension) |
+| ```n```                | Number of interpolations for distance calculation of two images. |
+| ```lam```              | Weighting factor for the euclidian component of the distance calculation. |
 | ```resolution```       | x- and y- Resolution of the decision boundary plot |
 | ```cmap```             | Name of the colormap that should be used in the plots. |
+
+## The λ-Parameter
+
+The λ-Hyperparameter weights the euclidian distance component. When the visualization doesn't show class-clusters, **try a smaller lambda** to put more emphasis on the discriminative distance component, which considers the classes. A smaller λ will normally pull the datapoints further into their class-clusters. Therefore, **if λ is too small**, this can lead to collapsed clusters that don't represent any structural properties of the datapoints. Of course this behaviour also depends on the data and how well the label corresponds to certain structural properties.
+
 
 ## Sample visualization
 
