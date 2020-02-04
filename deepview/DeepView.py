@@ -75,14 +75,17 @@ class DeepView:
 
 	@property
 	def distances(self):
-		eucl = self.eucl_distances * self.lam
-		stacked = np.dstack((self.discr_distances, eucl))
+		eucl_scale = 1. / self.eucl_distances.max()
+		fisher_scale = 1. / self.discr_distances.max()
+		eucl = self.eucl_distances * eucl_scale * self.lam
+		fisher = self.discr_distances * fisher_scale * (1.-self.lam)
+		stacked = np.dstack((fisher, eucl))
 		return stacked.sum(-1)
 
 	def reset(self):
 		self.discr_distances = np.array([])
 		self.eucl_distances = np.array([])
-		self.samples = np.empty([0, *data_shape])
+		self.samples = np.empty([0, *self.data_shape])
 		self.embedded = np.empty([0, 2])
 		self.y_true = np.array([])
 		self.y_pred = np.array([])
@@ -92,6 +95,8 @@ class DeepView:
 		plt.close()
 
 	def set_lambda(self, lam):
+		#if self.lam == lam:
+		#	return
 		self.lam = lam
 		self.update_mappings()
 

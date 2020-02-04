@@ -38,7 +38,8 @@ def d_js(p, q, axis=1):
 	kl2 = kl_divergence(q, m, axis=axis)
 	return 0.5 * (kl1 + kl2)
 
-def d_s(x, y, axis=(1, 2, 3)):
+def euclidian_distance(x, y, axis=(1, 2, 3)):
+	'''This corresponds to d_s in the paper'''
 	return np.sqrt(np.sum((x - y)**2, axis=axis))
 
 def predict_many(model, x, n_classes, batch_size):
@@ -74,15 +75,14 @@ def distance_row(model, x, y, n, batch_size, n_classes):
 			   predict_many(model, p_i, n_classes, batch_size), axis=2)
 	
 	# distance measure based on classification
-	discriminative = np.sqrt(np.abs(djs))
+	discriminative = np.sqrt(np.maximum(djs, 0.))
 	# euclidian distance measure based on structural differences
 	axes = tuple(range(2, len(x.shape)+1))
 
-	euclidian = d_s(p_prev, p_i, axis=axes)
-	#dist = d_p + lam * dis
-	
-	if (djs < 0).any():
-		print('[WARNING]: Potential NaN detected.')
+	#euclidian = d_s(p_prev, p_i, axis=axes)
+	#euclidian = np.sqrt(np.sum(((1./(n+1)) * (x - y))**2, axis=axes))
+	#euclidian = np.sqrt(np.sum((x - y)**2, axis=axes))
+	euclidian = euclidian_distance(x, y, axis=axes)
 	
 	return discriminative.sum(axis=1), euclidian.sum(axis=1)
 
@@ -118,52 +118,3 @@ def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
 			print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
 
 	return discr_distances, eucl_distances
-
-"""def calculate_fisher(model, xs, ys, N, lam):
-
-	n_samples = len(samples)
-	distances = np.zeros([n_samples, n_samples])
-
-	for i in range(n_samples):
-
-		x = samples[i]
-		x = x[np.newaxis] #torch.unsqueeze(x, 0).to(device)
-		ys = samples[i+1:]
-	
-		row_distances = np.zeros(n_samples)
-		
-		if len(ys) != 0:
-			row_distances[i+1:] = distance_row(model, x, ys, N, lam)
-
-		distances[i] = row_distances
-
-		if (i+1) % (len(samples)//5) == 0:
-			print('Distance calculation %.2f %%' % (((i+1)/n_samples)*100))
-
-	distances = distances + distances.transpose()
-	return distances"""
-def calculate_fisher_partial(model, xs, ys, N, lam):
-
-	n_xs = len(xs)
-	n_ys = len(ys)
-
-	distances = np.zeros([n_xs, n_ys])
-
-	for i in range(n_xs):
-
-		x = xs[i]
-		x = x[np.newaxis] #torch.unsqueeze(x, 0).to(device)
-		ys = ys[i+1:]
-	
-		row_distances = np.zeros(n_samples)
-		
-		if len(ys) != 0:
-			row_distances[i+1:] = distance_row(model, x, ys, N, lam)
-
-		distances[i] = row_distances
-
-		if (i+1) % (len(samples)//5) == 0:
-			print('Distance calculation %.2f %%' % (((i+1)/n_samples)*100))
-
-	distances = distances + distances.transpose()
-	return distances
