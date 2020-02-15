@@ -22,9 +22,9 @@ def make_cifar_dataset():
 	transform = transforms.Compose([
 		transforms.ToTensor(),
      	transforms.Normalize(*CIFAR_NORM)])
-	trainset = datasets.CIFAR10(root='data', train=True,
+	testset = datasets.CIFAR10(root='data', train=False,
 		download=True, transform=transform)
-	return trainset
+	return testset
 
 def make_digit_dataset(flatten=True):
 	data, target = load_digits(return_X_y=True)

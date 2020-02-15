@@ -40,13 +40,17 @@ def d_js(p, q, axis=1):
 
 def euclidian_distance(x, y, axis=(1, 2, 3)):
 	'''This corresponds to d_s in the paper'''
-	return np.sqrt(np.sum((x - y)**2, axis=axis))
+	#return np.sqrt(np.sum((x - y)**2, axis=axis))
+	diff = (x - y).reshape(len(y),-1)
+	return np.linalg.norm(diff, axis=-1)
 
 def predict_many(model, x, n_classes, batch_size):
-	# x -> (8, 5, 10, 3, 32, 32)
+	# x -> (row_len, interpol, data_shape)
 	orig_shape = np.shape(x)
-	# x -> (40, 10, 3, 32, 32)
-	x_reshape = x.reshape([-1, *orig_shape[2:]])
+
+	# x -> (row_len * interpol, data_shape)
+	x_reshape = np.vstack(x)#.reshape([-1, *orig_shape[2:]])
+	
 	n_inputs = len(x_reshape)
 	# p -> (40, 10, 10)
 	preds = np.zeros([len(x_reshape), n_classes])
@@ -59,14 +63,14 @@ def predict_many(model, x, n_classes, batch_size):
 		pred = model(inputs)
 		preds[r1:r2] = pred
 	
-	np_preds = preds.reshape([*orig_shape[:2], n_classes])
-	return np_preds
+	np_preds = np.vsplit(preds, orig_shape[0]) #.reshape([*orig_shape[:2], n_classes])
+	return np.array(np_preds)
 
 def distance_row(model, x, y, n, batch_size, n_classes):
 	y = y[:,np.newaxis]
 
-	steps = np.arange(n)
-	sprev = np.where(steps-1 < 0, 0, steps-1)
+	steps = np.arange(1, n+1)
+	sprev = steps-1 #np.where(steps-1 < 0, 0, steps-1)
 	
 	p_prev = p_ni_row(x, y, n, sprev)
 	p_i = p_ni_row(x, y, n, steps)
@@ -79,12 +83,9 @@ def distance_row(model, x, y, n, batch_size, n_classes):
 	# euclidian distance measure based on structural differences
 	axes = tuple(range(2, len(x.shape)+1))
 
-	#euclidian = d_s(p_prev, p_i, axis=axes)
-	#euclidian = np.sqrt(np.sum(((1./(n+1)) * (x - y))**2, axis=axes))
-	#euclidian = np.sqrt(np.sum((x - y)**2, axis=axes))
 	euclidian = euclidian_distance(x, y, axis=axes)
 	
-	return discriminative.sum(axis=1), euclidian.sum(axis=1)
+	return discriminative.sum(axis=1), euclidian#.sum(axis=1)
 
 def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
 
