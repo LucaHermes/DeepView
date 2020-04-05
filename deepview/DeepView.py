@@ -11,7 +11,7 @@ import numpy as np
 class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, 
-				 n=10, lam=0.0001, resolution=100, cmap='tab10'):
+				 n=10, lam=0.0001, resolution=100, cmap='tab10', title='DeepView'):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
@@ -67,6 +67,7 @@ class DeepView:
 		self.y_true = np.array([])
 		self.y_pred = np.array([])
 		self.classifier_view = np.array([])
+		self.title = title
 		self._init_plots()
 
 	@property
@@ -113,7 +114,8 @@ class DeepView:
 	def _init_plots(self):
 		plt.ion()
 		self.fig, self.ax = plt.subplots(1, 1)
-		self.ax.set_title('DeepView')
+		self.ax.set_title(self.title)
+		self.desc = self.fig.text(0.5, 0.02, '', fontsize=8, ha='center')
 		self.cls_plot = self.ax.imshow(np.zeros([5, 5, 3]), 
 			interpolation='gaussian', zorder=0, vmin=0, vmax=1)
 
@@ -224,6 +226,10 @@ class DeepView:
 		self.cls_plot.set_data(self.classifier_view)
 		self.cls_plot.set_extent((x_min, x_max, y_max, y_min))
 
+		params_str = 'batch size: %d - n: %d - $\lambda$: %.2f - res: %d'
+		desc = params_str % (self.batch_size, self.n, self.lam, self.resolution)
+		self.desc.set_text(desc)
+
 		for c in range(self.n_classes):
 			data = self.embedded[self.y_pred==c]
 			self.sample_plots[c].set_data(data.transpose())
@@ -241,3 +247,29 @@ class DeepView:
 		self.fig.show()
 		self.fig.canvas.manager.window.raise_()
 		#plt.show()
+
+	@staticmethod
+	def create_simple_wrapper(classify):
+		'''
+		Creates a basic wrapper function to be passed
+		on DeepView initialization. Works with sklearn
+		predict_proba methods.
+
+		Arguments
+		---------
+		classify : function
+			The function of a classifier called to
+			predict class probabilities. Has to return
+			a vector [batch, class probabilities]
+
+		Returns
+		-------
+		wrapper : function
+			Wrapper function that casts inputs to numpy
+			array of dtype float32.
+		'''
+		def wrapper(x):
+			x = np.array(x, dtype=np.float32)
+			pred = classify(x)
+			return pred
+		return wrapper

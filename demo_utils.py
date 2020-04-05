@@ -10,7 +10,9 @@ import torch.nn as nn
 
 # --------- SciPy libs ---------------------
 from sklearn.datasets import load_digits
-from sklearn import tree
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 import numpy as np
 
@@ -44,10 +46,28 @@ def create_torch_model(device):
 	return model
 
 def create_decision_tree(train_x, train_y, max_depth=8):
-	d_tree = tree.DecisionTreeClassifier(max_depth=max_depth)
+	d_tree = DecisionTreeClassifier(max_depth=max_depth)
 	d_tree = d_tree.fit(train_x, train_y)
 	test_score = d_tree.score(train_x, train_y)
 	print('Created decision tree')
-	print(' * Depth:\t', d_tree.get_depth())
-	print(' * Test score:\t', test_score)
+	print(' * Depth:\t\t', d_tree.get_depth())
+	print(' * Train score:\t\t', test_score)
 	return d_tree
+
+def create_random_forest(train_x, train_y, n_estimators=100):
+	r_forest = RandomForestClassifier(n_estimators)
+	r_forest = r_forest.fit(train_x, train_y)
+	test_score = r_forest.score(train_x, train_y)
+	print('Created random forest')
+	print(' * No. of Estimators:\t', n_estimators)
+	print(' * Train score:\t\t', test_score)
+	return r_forest
+
+def create_kn_neighbors(train_x, train_y, k=10):
+	k_neighbors = KNeighborsClassifier(k)
+	k_neighbors = k_neighbors.fit(train_x, train_y)
+	test_score = k_neighbors.score(train_x, train_y)
+	print('Created knn classifier')
+	print(' * No. of Neighbors:\t', k)
+	print(' * Train score:\t\t', test_score)
+	return k_neighbors
