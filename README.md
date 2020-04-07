@@ -7,21 +7,30 @@ This is an implementation of the DeepView framework that was presented in this p
 All requirements to run DeepView are in ```requirements.txt```. 
 To run the notebook, ```torch==1.3.1``` and ```torchvision==0.4.2``` are required as well.
 
+## Installation
+
+ 1. Download the repository
+ 2. Inside the DeepView-directory, run ```pip install -e .```
+
 ## Usage Instructions
 
- 1. Create a wrapper funktion (like ```pred_wrapper``` in the Demo notebook) which receives a numpy array of samples and returns according class probabilities from the classifier as numpy arrays
+> For detailed usage, look at the demo notebook ```DeepView Demo.ipynb``` and ```demo.py```
+ 
+ 1. To enable deepview to call the classifier, a wrapper-function (like ```pred_wrapper``` in the Demo notebook) must be provided. DeepView will pass a numpy array of samples to this function and as a return, it expects according class probabilities from the classifier as numpy arrays.
  2. Initialize DeepView-object and pass the created method to the constructor
  3. Run your code and call ```add_samples(samples, labels)``` at any time to add samples to the visualization together with the ground truth labels.
     * The ground truth labels will be visualized along with the predicted labels
     * The object will keep track of a maximum number of samples specified by ```max_samples``` and it will throw away the oldest samples first
  4. Call the ```show``` method to render the plot
-
+    * When ```interactive``` is True, this method is non-blocking to allow plot updates.
+    * When ```interactive``` is False, this method is blocking to prevent termination of python scripts.
+    
 The following parameters must be specified on initialization:
 
 
-| Variable    | Meaning             |
-|----------------------|-------------------|
-| ```pred_wrapper```    | To enable DeepView to call the classifier |
+| Variable               | Meaning           |
+|------------------------|-------------------|
+| ```pred_wrapper```     | To enable DeepView to call the classifier |
 | ```classes```          | All possible classes in the data |
 | ```max_samples```      | The maximum amount of samples that DeepView will keep track of |
 | ```batch_size```       | The maximal size of batches that are passed to the classifier (the ```pred_wrapper```-function) |
@@ -30,6 +39,8 @@ The following parameters must be specified on initialization:
 | ```lam```              | Weighting factor for the euclidian component of the distance calculation. |
 | ```resolution```       | x- and y- Resolution of the decision boundary plot |
 | ```cmap```             | Name of the colormap that should be used in the plots. |
+| ```interactive```      | When ```interactive``` is True, this method is non-blocking to allow plot updates. When ```interactive``` is False, this method is blocking to prevent termination of python scripts. |
+| ```title```            | Title of the deepview-plot. |
 
 ## The λ-Parameter
 
