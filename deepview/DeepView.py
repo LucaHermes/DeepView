@@ -11,7 +11,8 @@ import numpy as np
 class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, 
-				 n=10, lam=0.0001, resolution=100, cmap='tab10', title='DeepView'):
+				 n=10, lam=0.0001, resolution=100, cmap='tab10', 
+				 interactive=True, title='DeepView'):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
@@ -67,6 +68,7 @@ class DeepView:
 		self.y_true = np.array([])
 		self.y_pred = np.array([])
 		self.classifier_view = np.array([])
+		self.interactive = interactive
 		self.title = title
 		self._init_plots()
 
@@ -112,7 +114,8 @@ class DeepView:
 		return x_min, y_min, x_max, y_max
 
 	def _init_plots(self):
-		plt.ion()
+		if self.interactive:
+			plt.ion()
 		self.fig, self.ax = plt.subplots(1, 1)
 		self.ax.set_title(self.title)
 		self.desc = self.fig.text(0.5, 0.02, '', fontsize=8, ha='center')
@@ -244,9 +247,9 @@ class DeepView:
 
 		self.fig.canvas.draw()
 		self.fig.canvas.flush_events()
-		self.fig.show()
+		#self.fig.show()
 		self.fig.canvas.manager.window.raise_()
-		#plt.show()
+		plt.show()
 
 	@staticmethod
 	def create_simple_wrapper(classify):
