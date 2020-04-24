@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def gamma(x, y, t, axis_x=0, axis_y=0):
 	N = len(t)
@@ -7,7 +8,7 @@ def gamma(x, y, t, axis_x=0, axis_y=0):
 	t_rep = np.reshape(t, [N] + [1]*rank)
 
 	for i, dim in enumerate(x_shape):
-		t_rep = t_rep.repeat(dim, i+1)#.repeat(h, 2).repeat(w, 3)
+		t_rep = t_rep.repeat(dim, i+1)
 
 	t_rep1 = np.reshape(t, [1, N] + [1]*rank)
 	t_rep1 = t_rep1.repeat(len(y), 0)
@@ -26,12 +27,8 @@ def p_ni_row(x, y, n, i):
 	return gamma(x, y, (i/n), axis_x=0, axis_y=1)
 
 def kl_divergence(p, q, axis):
-	# add an epsilon for numeric stability in log and divide
-	p = np.asarray(p+1e-10, dtype=np.float)
-	q = np.asarray(q+1e-10, dtype=np.float)
-
 	return np.sum(np.where(p != 0, p * np.log(p / q), 0), axis=axis)
-
+    
 def d_js(p, q, axis=1):
 	m = (p + q)/2.   
 	kl1 = kl_divergence(p, m, axis=axis)
@@ -49,13 +46,13 @@ def predict_many(model, x, n_classes, batch_size):
 	orig_shape = np.shape(x)
 
 	# x -> (row_len * interpol, data_shape)
-	x_reshape = np.vstack(x)#.reshape([-1, *orig_shape[2:]])
+	x_reshape = np.vstack(x)
 	
 	n_inputs = len(x_reshape)
 	# p -> (40, 10, 10)
 	preds = np.zeros([len(x_reshape), n_classes])
 	
-	n_batches = max(round(n_inputs//batch_size), 1)
+	n_batches = max(math.ceil(n_inputs/batch_size), 1)
 
 	for b in range(n_batches):
 		r1, r2 = b*batch_size, (b+1)*batch_size
@@ -63,17 +60,17 @@ def predict_many(model, x, n_classes, batch_size):
 		pred = model(inputs)
 		preds[r1:r2] = pred
 	
-	np_preds = np.vsplit(preds, orig_shape[0]) #.reshape([*orig_shape[:2], n_classes])
+	np_preds = np.vsplit(preds, orig_shape[0])
 	return np.array(np_preds)
 
 def distance_row(model, x, y, n, batch_size, n_classes):
 	y = y[:,np.newaxis]
 
-	steps = np.arange(1, n+1)
+	steps = np.arange(1, n+2)
 	sprev = steps-1 #np.where(steps-1 < 0, 0, steps-1)
-	
-	p_prev = p_ni_row(x, y, n, sprev)
-	p_i = p_ni_row(x, y, n, steps)
+    
+	p_prev = p_ni_row(x, y, n+1, sprev)
+	p_i = p_ni_row(x, y, n+1, steps)
 	
 	djs = d_js(predict_many(model, p_prev, n_classes, batch_size),
 			   predict_many(model, p_i, n_classes, batch_size), axis=2)
@@ -85,7 +82,7 @@ def distance_row(model, x, y, n, batch_size, n_classes):
 
 	euclidian = euclidian_distance(x, y, axis=axes)
 	
-	return discriminative.sum(axis=1), euclidian#.sum(axis=1)
+	return discriminative.sum(axis=1), euclidian
 
 def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
 
