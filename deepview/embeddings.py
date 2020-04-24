@@ -6,7 +6,7 @@ def embed(distances, seed=42):
 	N_NEIGBORS = 15
 
 	mapper = umap.UMAP(metric="precomputed", n_neighbors=N_NEIGBORS, 
-                         random_state=seed, spread=2.0, min_dist=0.01)
+                         random_state=seed, spread=1.0, min_dist=0.1)
 
 	mapper = mapper.fit(distances) 
 	embedding = mapper.transform(distances)
