@@ -138,6 +138,8 @@ class DeepView:
 			self.sample_plots.append(plot[0])
 
 		self.fig.canvas.mpl_connect('pick_event', self.show_sample)
+		self.fig.canvas.mpl_connect('button_press_event', self.show_sample)
+		self.disable_synth = False
 		self.ax.legend()
 		plt.show(block=False)
 
@@ -237,6 +239,18 @@ class DeepView:
 			sample, p, t = self.get_artist_sample(point)
 			title = '%s <-> %s' if p != t else '%s --- %s'
 			title = title % (self.classes[p], self.classes[t])
+			self.disable_synth = True
+		elif not self.disable_synth:
+			# workaraound: inverse embedding needs more points
+			# otherwise it doens't work --> [point]*5
+			point = np.array([[ event.xdata , event.ydata ]]*5)
+			sample = self.inverse(point)[0]
+			sample += abs(sample.min())
+			sample /= sample.max()
+			title = 'Synthesised at [%.1f, %.1f]' % tuple(point[0])
+		else:
+			self.disable_synth = False
+			return
 
 		f, a = plt.subplots()
 		a.imshow(sample)
