@@ -117,7 +117,7 @@ class DeepView:
 	def _init_plots(self):
 		if self.interactive:
 			plt.ion()
-		self.fig, self.ax = plt.subplots(1, 1)
+		self.fig, self.ax = plt.subplots(1, 1, figsize=(8, 8))
 		self.ax.set_title(self.title)
 		self.desc = self.fig.text(0.5, 0.02, '', fontsize=8, ha='center')
 		self.cls_plot = self.ax.imshow(np.zeros([5, 5, 3]), 
