@@ -2,6 +2,7 @@ from deepview.embeddings import create_mappings
 from deepview.fisher_metric import calculate_fisher
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 
 # N = 10
@@ -127,7 +128,7 @@ class DeepView:
 		for c in range(self.n_classes):
 			color = self.cmap(c/(self.n_classes-1))
 			plot = self.ax.plot([], [], 'o', label=self.classes[c], 
-				color=color, zorder=2)
+				color=color, zorder=2, picker=mpl.rcParams['lines.markersize'])
 			self.sample_plots.append(plot[0])
 
 		for c in range(self.n_classes):
@@ -136,6 +137,7 @@ class DeepView:
 				fillstyle='none', ms=12, mew=2.5, zorder=1)
 			self.sample_plots.append(plot[0])
 
+		self.fig.canvas.mpl_connect('pick_event', self.show_sample)
 		self.ax.legend()
 		plt.show(block=False)
 
@@ -220,14 +222,42 @@ class DeepView:
 		decision_view = color.reshape(self.resolution, self.resolution, 3)
 		return decision_view
 
+	def show_sample(self, event):
+		# don't show this when the data samples are images
+		if not len(self.data_shape) == 3:
+			return
+		# when there is an artist attribute, a 
+		# concrete sample was clicked, otherwise
+		# show the according synthesised image
+		if hasattr(event, 'artist'):
+			artist = event.artist
+			ind = event.ind
+			xs, ys = artist.get_data()
+			point = [xs[ind][0], ys[ind][0]]
+			sample, p, t = self.get_artist_sample(point)
+			title = '%s <-> %s' if p != t else '%s --- %s'
+			title = title % (self.classes[p], self.classes[t])
+
+		f, a = plt.subplots()
+		a.imshow(sample)
+		a.set_title(title)
+			
+	def get_artist_sample(self, point):
+		'''Maps the location of an embedded point to it's image.'''
+		sample_id = np.argmin(np.linalg.norm(self.embedded - point, axis=1))
+		sample = self.samples[sample_id]
+		sample = sample + np.abs(sample.min())
+		sample = sample / sample.max()
+		yp, yt = (int(self.y_pred[sample_id]), int(self.y_true[sample_id]))
+		return sample, yp, yt
+
 	def show(self):
 		x_min, y_min, x_max, y_max = self._get_plot_measures()
 
-		#ax.imshow(decision_view, 
-		#	extent=(x_min, x_max, y_max, y_min), 
-		#	interpolation='gaussian')
 		self.cls_plot.set_data(self.classifier_view)
 		self.cls_plot.set_extent((x_min, x_max, y_max, y_min))
+		self.ax.set_xlim((x_min, x_max))
+		self.ax.set_ylim((y_min, y_max))
 
 		params_str = 'batch size: %d - n: %d - $\lambda$: %.2f - res: %d'
 		desc = params_str % (self.batch_size, self.n, self.lam, self.resolution)

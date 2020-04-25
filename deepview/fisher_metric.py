@@ -27,6 +27,9 @@ def p_ni_row(x, y, n, i):
 	return gamma(x, y, (i/n), axis_x=0, axis_y=1)
 
 def kl_divergence(p, q, axis):
+	# add epsilon for numeric stability
+	p += 1e-10
+	q += 1e-10
 	return np.sum(np.where(p != 0, p * np.log(p / q), 0), axis=axis)
     
 def d_js(p, q, axis=1):
