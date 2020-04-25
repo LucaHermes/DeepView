@@ -264,13 +264,13 @@ class DeepView:
 		self.desc.set_text(desc)
 
 		for c in range(self.n_classes):
-			data = self.embedded[self.y_pred==c]
+			data = self.embedded[self.y_true==c]
 			self.sample_plots[c].set_data(data.transpose())
 			#plot = ax.plot(*data.transpose(), 'o', c=self.cmap(c/9), 
 			#	label=self.classes[c])
 
 		for c in range(self.n_classes):
-			data = self.embedded[np.logical_and(self.y_pred!=c, self.y_true==c)]
+			data = self.embedded[np.logical_and(self.y_pred==c, self.y_true!=c)]
 			self.sample_plots[self.n_classes+c].set_data(data.transpose())
 			#plot = ax.plot(*data.transpose(), 'o', markeredgecolor=self.cmap(c/9), 
 			#	fillstyle='none', ms=200, linewidth=3)
