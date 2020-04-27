@@ -39,10 +39,6 @@ class Mapper(abc.ABC):
 	def fit(self, x, y=None):
 		pass
 
-	@abc.abstractclassmethod
-	def fit_transform(self, x, y=None):
-		pass
-
 class InvMapper(stocemb.StochasticEmbedding):
 
 	def __init__(self, neighbors, centroids, smoothing_epochs, smoothing_neighbors, max_iter):
