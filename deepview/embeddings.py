@@ -1,43 +1,91 @@
 import umap
 import deepview.Stochastic_Embedding as stocemb
+import deepview.config as defaults
 import numpy as np
+import abc
 
-def embed(distances, seed=42):
-	N_NEIGBORS = 30
+def init_umap(config):
+	n_neighbors = config.get('n_neighbors', defaults.n_neighbors)
+	min_dist = config.get('min_dist', defaults.min_dist)
+	spread = config.get('spread', defaults.spread)
+	seed = config.get('seed', defaults.seed)
+	return umap.UMAP(metric='precomputed', n_neighbors=n_neighbors,
+		random_state=seed, spread=spread, min_dist=min_dist)
 
-	mapper = umap.UMAP(metric="precomputed", n_neighbors=N_NEIGBORS, 
-                         random_state=seed, spread=1.0, min_dist=0.1)
+def init_inv_umap(config):
+	neighbors = config.get('neighbor_frac', defaults.neighbor_frac)
+	centroids = config.get('centroid_frac', defaults.centroid_frac)
+	smoothing_epochs = config.get('smoothing_epochs', 
+		defaults.smoothing_epochs)
+	smoothing_neighbors = config.get('smoothing_neighbors', 
+		defaults.smoothing_neighbors)
+	max_iter = config.get('max_iter', defaults.max_iter)
+	return InvMapper(neighbors, centroids, smoothing_epochs, 
+		smoothing_neighbors, max_iter)
 
-	mapper = mapper.fit(distances) 
-	embedding = mapper.transform(distances)
+class Mapper(abc.ABC):
 
-	return embedding
+	def __init__(self):
+		pass
 
-def get_inverse_mapper(samples, embedded, data_shape, n_bins=100):
-	SCALE = 1.1
-	flat_dim = np.prod(data_shape)
-	x_flat = np.reshape(samples, [-1, flat_dim])
-	
-	ebd_min = np.min(embedded, axis=0)
-	ebd_max = np.max(embedded, axis=0)
-	av_range = np.mean(ebd_max - ebd_min)
-	#n_centroids = min(100, len(samples)*0.7)
-	n_centroids = int(len(samples)*0.7)
+	def __call__(self, x):
+		return self.transform(x)
 
-	embd = stocemb.StochasticEmbedding(
-		n_centroids=n_centroids, n_smoothing_epochs=0, 
-		n_neighbors=n_centroids, a=500/av_range, b=1, 
-		border_min_dist=av_range*SCALE*1.05)
-	
-	embd.fit(embedded, x_flat, direct_adaption=True, eta=0.1, max_itr=2000, F=None)
+	@abc.abstractclassmethod
+	def transform(self, x):
+		pass
 
-	return embd
+	@abc.abstractclassmethod
+	def fit(self, x, y=None):
+		pass
 
-def create_mappings(distances, samples, data_shape):
-	embedded = embed(distances)
-	inv = get_inverse_mapper(samples, embedded, data_shape)
+	@abc.abstractclassmethod
+	def fit_transform(self, x, y=None):
+		pass
 
-	data_shape = [-1, *data_shape]
-	map_to_sample = lambda ebd: inv.transform(ebd).reshape(data_shape)
+class InvMapper(stocemb.StochasticEmbedding):
 
-	return embedded, map_to_sample
+	def __init__(self, neighbors, centroids, smoothing_epochs, smoothing_neighbors, max_iter):
+		self.neighbors = neighbors
+		self.centroids = centroids
+		self.max_iter = max_iter
+		super(InvMapper, self).__init__(
+			n_smoothing_epochs=smoothing_epochs,
+			n_smoothing_neighbors=smoothing_neighbors)
+
+	def fit(self, x, y):
+		'''
+		x : embedded,
+		y : x
+		'''
+		self.data_shape = y.shape[1:]
+		flat_dim = np.prod(y.shape[1:])
+		y_flat = np.reshape(y, [-1, flat_dim])
+
+		x_min = np.min(x, axis=0)
+		x_max = np.max(x, axis=0)
+		av_range = np.mean(x_max - x_min)
+		self.a = 500/av_range
+		self.b = 1
+		self.border_min_dist = av_range*1.1
+
+		self.n_neighbors = int(len(x) * self.neighbors)
+		self.n_centroids = int(len(x) * self.centroids)
+
+		self._fit(x, y_flat, direct_adaption=True,
+			eta=0.1, max_itr=self.max_iter, F=None)
+
+	def fit_transform(self, x, y):
+		self.fit(x, y)
+		return self(distances)
+
+	def transform(self, x):
+		return self(x)
+
+	def __call__(self, x):
+		if not hasattr(self, 'data_shape'):
+			raise AttributeError('Before calling, the \
+				embedding must be trained via the fit method.')
+		shape = [-1, *self.data_shape]
+		map_to_sample = self._transform(x).reshape(shape)
+		return map_to_sample

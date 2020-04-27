@@ -332,7 +332,7 @@ class StochasticEmbedding(BaseEstimator):
         if (self.n_smoothing_neighbors is not None) and ((not isinstance(self.n_smoothing_neighbors, int)) or self.n_smoothing_neighbors < 2):
             raise ValueError("n_smoothing_neighbors must be a positive integer greater then 2 or None for self estimid")
         
-    def fit(self, X, Y, lab=None, direct_adaption=True, eta=0.1, max_itr=500, F=None):
+    def _fit(self, X, Y, lab=None, direct_adaption=True, eta=0.1, max_itr=500, F=None):
         """Fit X into an embedded space.
 
         Optionally use y for supervised dimension reduction.
@@ -532,7 +532,7 @@ class StochasticEmbedding(BaseEstimator):
     def find_nn(self, X):
         return select_neighbors(self._centroied_neighbors[self._triangolation.simplices[self._triangolation.find_simplex(X)]])
     
-    def transform(self,x,return_H=None):
+    def _transform(self,x,return_H=None):
         if self.verbose:
             print("compute initial embedding")
         nn = self.find_nn(x)
