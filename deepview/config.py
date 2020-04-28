@@ -2,7 +2,8 @@
 n_neighbors = 30
 spread = 1.0
 min_dist = 0.1
-seed = 42
+random_state = 42
+verbose = False
 
 # --- default stochastic embedding config -----
 # fraction of samples used as neighbors
