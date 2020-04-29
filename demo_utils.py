@@ -17,7 +17,8 @@ from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
 
 
-TORCH_WEIGHTS = "/media/luca/LocalDiskAsWell/python_projects/DeepView/DeepView/models/pytorch_resnet_cifar10-master/pretrained_models/resnet20-12fca82f.th"
+#TORCH_WEIGHTS = "/media/luca/LocalDiskAsWell/python_projects/DeepView/DeepView/models/pytorch_resnet_cifar10-master/pretrained_models/resnet20-12fca82f.th"
+TORCH_WEIGHTS = "models/pytorch_resnet_cifar10-master/pretrained_models/resnet20-12fca82f.th"
 CIFAR_NORM = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 
 def make_cifar_dataset():
