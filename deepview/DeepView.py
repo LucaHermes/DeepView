@@ -307,7 +307,7 @@ class DeepView:
 			return
 
 		f, a = plt.subplots()
-		a.imshow(sample)
+		a.imshow(sample.squeeze())
 		a.set_title(title)
 			
 	def get_artist_sample(self, point):
