@@ -1,38 +1,30 @@
-from deepview.embeddings import create_mappings
+from deepview.embeddings import init_umap, init_inv_umap#Mapper, InvMapper
 from deepview.fisher_metric import calculate_fisher
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 
-# N = 10
-# lam = 0.00001
-# no sqrt for eucl dist
-
 class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, 
-				 n=10, lam=0.0001, resolution=100, cmap='tab10', 
-				 interactive=True, title='DeepView'):
+				 n=3, lam=0.5, resolution=100, cmap='tab10', interactive=True, 
+				 title='DeepView', mapper=None, inv_mapper=None, **kwargs):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
 		space, the 2D space is sampled on a regular grid and a
 		classification outcome for each point is visualized.
-
-		TODO: 
-		  * allow all data shapes
-		  * make robust to different inputs and classifiers
 		
 		Parameters
 		----------
 		pred_fn	: callable, function
 			Function that takes a single argument, which is data to be classified
-			and returns the prediction logits of the model. 
+			and returns the prediction logits of the model.
 			For an example, see the demo jupyter notebook
 			https://github.com/LucaHermes/DeepView/blob/master/DeepView%20Demo.ipynb
 		classes	: list, tuple of str
-			All classes that the classifier uses as a list/tuple of strings. 
+			All classes that the classifier uses as a list/tuple of strings.
 		max_samples	: int
 			The maximum number of data samples that this class keeps for visualization.
 			If the number of data samples passed via 'add_samples' exceeds this limit, 
@@ -44,13 +36,34 @@ class DeepView:
 		n : int
 			Number of interpolations for distance calculation of two images.
 		lam : float
-			Weighting factor for the euclidian component of the distance calculation.
+			Weights the euclidian metric against the discriminative, classification-
+			based, distance: eucl * lambda + discr * (1 - lambda).
 		resolution : int
-			Resolution of the visualization of the classification boundaries.
+			Resolution of the classification boundary plot.
 		cmap : str
-			Name of the colormap to use for visualization. 
+			Name of the colormap to use for visualization.
 			The number of distinguishable colors should correspond to n_classes.
 			See here for the names: https://matplotlib.org/3.1.1/gallery/color/colormap_reference.html
+		interactive : bool
+			If interactive is true, the show() method won't be blocking, so code execution will continue.
+			Otherwise it will be blocking.
+		title : str
+			The title for the plot
+		mapper : object
+			An object that maps samples from the data input domain to 2D space. The object
+			must have the methods of deepview.embeddings.Mapper. fit is called with a distance matrix
+			of all data samples and transform is called with an image that should be projected to 2D. 
+			Defaults to None, in this case UMAP is taken.
+		inv_mapper : object
+			An object that maps samples from the 2D space to the data input domain. The object
+			must have the methods of deepview.embeddings.Mapper. fit is called with 2D points and
+			their according data samples. transform is called with 2D points that should be projected to data space. 
+			Defaults to None, in this case deepview.embeddings.InvMapper is taken.
+		kwargs : dict
+			Configuration for the embeddings in case they are not specifically given in mapper and inv_mapper.
+			Defaults to deepview.config.py. 
+			See UMAP-parameters here: 
+			https://github.com/lmcinnes/umap/blob/master/umap/umap_.py#L1167
 		'''
 		self.model = pred_fn
 		self.classes = classes
@@ -71,6 +84,7 @@ class DeepView:
 		self.classifier_view = np.array([])
 		self.interactive = interactive
 		self.title = title
+		self._init_mappers(mapper, inv_mapper, kwargs)
 		self._init_plots()
 
 	@property
@@ -79,6 +93,12 @@ class DeepView:
 
 	@property
 	def distances(self):
+		'''
+		Combines euclidian with discriminative fisher distances.
+		Here the two distance measures are weighted with lambda
+		to emphasise structural properties (lambda > 0.5) or
+		to emphasise prediction properties (lambda < 0.5).
+		'''
 		eucl_scale = 1. / self.eucl_distances.max()
 		fisher_scale = 1. / self.discr_distances.max()
 		eucl = self.eucl_distances * eucl_scale * self.lam
@@ -87,6 +107,7 @@ class DeepView:
 		return stacked.sum(-1)
 
 	def reset(self):
+		'''Resets the state of DeepView to the point of initialization.'''
 		self.discr_distances = np.array([])
 		self.eucl_distances = np.array([])
 		self.samples = np.empty([0, *self.data_shape])
@@ -96,15 +117,32 @@ class DeepView:
 		self.classifier_view = np.array([])
 
 	def close(self):
+		'''Closes the matplotlib window, terminates DeepView.'''
 		plt.close()
 
 	def set_lambda(self, lam):
-		#if self.lam == lam:
-		#	return
+		'''Dynamically sets a new lambda and recomputes the
+		embeddings, as the distances will also change.'''
+		if self.lam == lam:
+			return
 		self.lam = lam
 		self.update_mappings()
 
+	def _init_mappers(self, mapper, inv_mapper, kwargs):
+		if mapper is not None:
+			self.mapper = mapper
+		else:
+			self.mapper = init_umap(kwargs)
+		if inv_mapper is not None:
+			self.inverse = inv_mapper
+		else:
+			self.inverse = init_inv_umap(kwargs)
+
+
 	def _get_plot_measures(self):
+		'''Computes the axis limits of the main plot by using
+		min/max values of the 2D sample embedding and adding 10%
+		on either side.'''
 		ebd_min = np.min(self.embedded, axis=0)
 		ebd_max = np.max(self.embedded, axis=0)
 		ebd_extent = ebd_max - ebd_min
@@ -115,6 +153,7 @@ class DeepView:
 		return x_min, y_min, x_max, y_max
 
 	def _init_plots(self):
+		'''Initialises matplotlib artists and plots.'''
 		if self.interactive:
 			plt.ion()
 		self.fig, self.ax = plt.subplots(1, 1, figsize=(8, 8))
@@ -138,10 +177,14 @@ class DeepView:
 			self.sample_plots.append(plot[0])
 
 		self.fig.canvas.mpl_connect('pick_event', self.show_sample)
+		self.fig.canvas.mpl_connect('button_press_event', self.show_sample)
+		self.disable_synth = False
 		self.ax.legend()
 		plt.show(block=False)
 
 	def update_matrix(self, old_matrix, new_values, n_new, n_keep):
+		'''When new distance values are calculated this merges old 
+		and new distances into the same matrix.'''
 		to_triu = np.triu(old_matrix, k=1)
 		new_mat = np.zeros([self.num_samples, self.num_samples])
 		new_mat[n_new:,n_new:] = to_triu[:n_keep,:n_keep]
@@ -151,14 +194,21 @@ class DeepView:
 
 	def update_mappings(self):
 		print('Embedding samples ...')
-		self.embedded, self.inverse = create_mappings(
-			self.distances, self.samples, self.data_shape)
-
+		self.mapper.fit(self.distances)
+		self.embedded = self.mapper.transform(self.distances)
+		self.inverse.fit(self.embedded, self.samples)
 		self.classifier_view = self.compute_grid()
 
 	def add_samples(self, samples, labels):
 		'''
 		Adds samples points to the visualization.
+
+		Parameters
+		----------
+		samples : array-like
+			List of new sample points [n_samples, *data_shape]
+		labels : array-like
+			List of labels for the sample points [n_samples, 1]
 		'''
 		# prevent new samples to be bigger then maximum
 		samples = samples[:self.max_samples]
@@ -186,6 +236,7 @@ class DeepView:
 		self.update_mappings()
 
 	def compute_grid(self):
+		'''Computes the visualisation of the decision boundaries.'''
 		print('Computing decision regions ...')
 		# get extent of embedding
 		x_min, y_min, x_max, y_max = self._get_plot_measures()
@@ -223,6 +274,11 @@ class DeepView:
 		return decision_view
 
 	def show_sample(self, event):
+		'''
+		Invoked when the user clicks on the plot.
+		Shows the according sample, for clicks on specific 
+		embedded sample points and the synthesised image otherwise.
+		'''
 		# don't show this when the data samples are images
 		if not len(self.data_shape) == 3:
 			return
@@ -237,6 +293,18 @@ class DeepView:
 			sample, p, t = self.get_artist_sample(point)
 			title = '%s <-> %s' if p != t else '%s --- %s'
 			title = title % (self.classes[p], self.classes[t])
+			self.disable_synth = True
+		elif not self.disable_synth:
+			# workaraound: inverse embedding needs more points
+			# otherwise it doens't work --> [point]*5
+			point = np.array([[ event.xdata , event.ydata ]]*5)
+			sample = self.inverse(point)[0]
+			sample += abs(sample.min())
+			sample /= sample.max()
+			title = 'Synthesised at [%.1f, %.1f]' % tuple(point[0])
+		else:
+			self.disable_synth = False
+			return
 
 		f, a = plt.subplots()
 		a.imshow(sample)
@@ -252,6 +320,7 @@ class DeepView:
 		return sample, yp, yt
 
 	def show(self):
+		'''Shows the current plot.'''
 		x_min, y_min, x_max, y_max = self._get_plot_measures()
 
 		self.cls_plot.set_data(self.classifier_view)
