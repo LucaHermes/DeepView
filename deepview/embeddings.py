@@ -8,9 +8,10 @@ def init_umap(config):
 	n_neighbors = config.get('n_neighbors', defaults.n_neighbors)
 	min_dist = config.get('min_dist', defaults.min_dist)
 	spread = config.get('spread', defaults.spread)
-	seed = config.get('seed', defaults.seed)
+	random_state = config.get('random_state', defaults.random_state)
+	verbose = config.get('verbose', defaults.verbose)
 	return umap.UMAP(metric='precomputed', n_neighbors=n_neighbors,
-		random_state=seed, spread=spread, min_dist=min_dist)
+		random_state=random_state, spread=spread, min_dist=min_dist, verbose=verbose)
 
 def init_inv_umap(config):
 	neighbors = config.get('neighbor_frac', defaults.neighbor_frac)
