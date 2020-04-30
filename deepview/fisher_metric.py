@@ -1,6 +1,10 @@
 import numpy as np
 import math
 
+import warnings
+warnings.simplefilter("ignore")
+
+
 def gamma(x, y, t, axis_x=0, axis_y=0):
 	N = len(t)
 	x_shape = x.shape[1:]
@@ -87,7 +91,7 @@ def distance_row(model, x, y, n, batch_size, n_classes):
 	
 	return discriminative.sum(axis=1), euclidian
 
-def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
+def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes, verbose):
 
 	n_xs = len(from_samples)
 	n_ys = len(to_samples)
@@ -115,7 +119,7 @@ def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
 		discr_distances[i] = disc_row
 		eucl_distances[i] = eucl_row
 
-		if (i+1) % (n_xs//5) == 0:
+		if verbose and (i+1) % (n_xs//5) == 0:
 			print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
 
 	return discr_distances, eucl_distances

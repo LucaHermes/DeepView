@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 
+import umap
+
 class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, 
 				 n=3, lam=0.5, resolution=100, cmap='tab10', interactive=True, 
-				 title='DeepView', mapper=None, inv_mapper=None, **kwargs):
+				 title='DeepView', mapper=None, inv_mapper=None, verbose=False, 
+				 **kwargs):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
@@ -59,6 +62,8 @@ class DeepView:
 			must have the methods of deepview.embeddings.Mapper. fit is called with 2D points and
 			their according data samples. transform is called with 2D points that should be projected to data space. 
 			Defaults to None, in this case deepview.embeddings.InvMapper is taken.
+		verbose : bool
+			If true, outputs process and additional information while calculating.
 		kwargs : dict
 			Configuration for the embeddings in case they are not specifically given in mapper and inv_mapper.
 			Defaults to deepview.config.py. 
@@ -84,6 +89,7 @@ class DeepView:
 		self.classifier_view = np.array([])
 		self.interactive = interactive
 		self.title = title
+		self.verbose = verbose
 		self._init_mappers(mapper, inv_mapper, kwargs)
 		self._init_plots()
 
@@ -193,13 +199,33 @@ class DeepView:
 		return new_mat + new_mat.transpose()
 
 	def update_mappings(self):
-		print('Embedding samples ...')
+		self.print('Embedding samples ...')
 		self.mapper.fit(self.distances)
+
+		#if len(self.embedded) == 0:
 		self.embedded = self.mapper.transform(self.distances)
+		#else:
+		#	self.embedded = self.mapper.transform(self.distances, prior=self.embedded)
+
+		#if len(self.embedded) == 0:
+		#	self.embedded = embedded
+		#else:
+		#	emd = self.embedded
+		#	x_min = emd.min(0)
+		#	x_max = emd.max(0)
+		#	av_range = np.mean(x_max - x_min)
+
+		#	a = 500/av_range
+		#	b = 1
+
+		#	self.embedded = umap.umap_.optimize_layout_euclidean(
+		#		embedded, emd, list(range(self.num_samples)), list(range(self.num_samples)), 
+		#		1000, self.num_samples, np.array([1]*self.num_samples), a, b, np.array([1,1,1]))
+
 		self.inverse.fit(self.embedded, self.samples)
 		self.classifier_view = self.compute_grid()
 
-	def add_samples(self, samples, labels):
+	def add_samples(self, samples, labels, update_dists=True):
 		'''
 		Adds samples points to the visualization.
 
@@ -212,7 +238,6 @@ class DeepView:
 		'''
 		# prevent new samples to be bigger then maximum
 		samples = samples[:self.max_samples]
-		n_new = len(samples)
 
 		# add new samples and remove depricated samples
 		# and get predictions for the new samples
@@ -221,23 +246,36 @@ class DeepView:
 		self.y_pred = np.concatenate((Y_preds, self.y_pred))[:self.max_samples]
 		self.y_true = np.concatenate((labels, self.y_true))[:self.max_samples]
 
+		if update_dists:
+			self.update(samples)
+
+	def update(self, targets=None):
 		# calculate new distances
-		xs = samples
+		if targets is None:
+			xs = self.samples
+		else:
+			xs = targets
+
+		n_new = len(xs)
 		ys = self.samples
 		new_discr, new_eucl = calculate_fisher(self.model, xs, ys, self.n, 
-			self.batch_size, self.n_classes)
+			self.batch_size, self.n_classes, self.verbose)
 
 		# add new distances
-		n_keep = self.max_samples - n_new
+		n_keep =  self.max_samples - n_new if targets is not None else 0
 		self.discr_distances = self.update_matrix(self.discr_distances, new_discr, n_new, n_keep)
 		self.eucl_distances = self.update_matrix(self.eucl_distances, new_eucl, n_new, n_keep)
 
+		# update predictions
+		self.y_pred = self.model(self.samples).argmax(axis=1)
+		
 		# update mappings
 		self.update_mappings()
+		self.update_plot()
 
 	def compute_grid(self):
 		'''Computes the visualisation of the decision boundaries.'''
-		print('Computing decision regions ...')
+		self.print('Computing decision regions ...')
 		# get extent of embedding
 		x_min, y_min, x_max, y_max = self._get_plot_measures()
 		# create grid
@@ -246,7 +284,7 @@ class DeepView:
 		grid = np.array(np.meshgrid(xs, ys))
 		grid = np.swapaxes(grid.reshape(grid.shape[0],-1),0,1)
 		
-		# map gridmpoint to images
+		# map gridpoint to images
 		grid_samples = self.inverse(grid)
 		n_points = self.resolution**2
 
@@ -258,7 +296,7 @@ class DeepView:
 			# add epsilon for stability
 			mesh_preds[i:n_preds] = self.model(batch) + 1e-8
 
-		mesh_classes = mesh_preds.argmax(axis=1)
+		mesh_classes = mesh_preds.argmax(axis=-1)
 		mesh_max_class = max(mesh_classes)
 
 		# get color of gridpoints
@@ -282,6 +320,7 @@ class DeepView:
 		# don't show this when the data samples are images
 		if not len(self.data_shape) == 3:
 			return
+
 		# when there is an artist attribute, a 
 		# concrete sample was clicked, otherwise
 		# show the according synthesised image
@@ -305,7 +344,8 @@ class DeepView:
 		else:
 			self.disable_synth = False
 			return
-
+		if self.data_shape[-1] == 1:
+			sample = sample[:,:,0]
 		f, a = plt.subplots()
 		a.imshow(sample)
 		a.set_title(title)
@@ -319,7 +359,7 @@ class DeepView:
 		yp, yt = (int(self.y_pred[sample_id]), int(self.y_true[sample_id]))
 		return sample, yp, yt
 
-	def show(self):
+	def update_plot(self):
 		'''Shows the current plot.'''
 		x_min, y_min, x_max, y_max = self._get_plot_measures()
 
@@ -346,9 +386,15 @@ class DeepView:
 
 		self.fig.canvas.draw()
 		self.fig.canvas.flush_events()
-		#self.fig.show()
+	
+	def show(self):
 		self.fig.canvas.manager.window.raise_()
 		plt.show()
+
+	def print(self, msg):
+		if not self.verbose:
+			return
+		print(msg)
 
 	@staticmethod
 	def create_simple_wrapper(classify):

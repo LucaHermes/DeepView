@@ -20,22 +20,23 @@ import numpy as np
 TORCH_WEIGHTS = "/media/luca/LocalDiskAsWell/python_projects/DeepView/DeepView/models/pytorch_resnet_cifar10-master/pretrained_models/resnet20-12fca82f.th"
 CIFAR_NORM = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 
-def make_cifar_dataset():
+def make_cifar_dataset(train=False):
 	transform = transforms.Compose([
 		transforms.ToTensor(),
      	transforms.Normalize(*CIFAR_NORM)])
-	testset = datasets.CIFAR10(root='data', train=False,
+	testset = datasets.CIFAR10(root='data', train=train,
 		download=True, transform=transform)
 	to_numpy = lambda s: s.cpu().numpy().transpose([1,2,0])
-	testset = [ [to_numpy(s), t] for s, t in testset ]
-	return testset
+	X = [ to_numpy(s) for s, _ in testset ]
+	y = [ t for _, t in testset ]
+	return X, y
 
 def make_digit_dataset(flatten=True):
 	data, target = load_digits(return_X_y=True)
 	data = data.reshape(len(data), -1) / 255.
 	return data, target
 
-def create_torch_model(device):
+def create_trained_resnet20(device):
 	model = resnet.resnet20()
 	weights = torch.load(TORCH_WEIGHTS, map_location=device)
 	model = nn.DataParallel(model)
@@ -47,6 +48,16 @@ def create_torch_model(device):
 	print(' * Dataset:\t\t CIFAR10')
 	print(' * Best Test prec:\t', weights['best_prec1'])
 	return model
+
+def create_cnn(train_x, train_y, k=10):
+	k_neighbors = KNeighborsClassifier(k)
+	k_neighbors = k_neighbors.fit(train_x, train_y)
+	test_score = k_neighbors.score(train_x, train_y)
+	print('Created knn classifier')
+	print(' * No. of Neighbors:\t', k)
+	print(' * Dataset:\t\t MNIST')
+	print(' * Train score:\t\t', test_score)
+	return k_neighbors
 
 def create_decision_tree(train_x, train_y, max_depth=8):
 	d_tree = DecisionTreeClassifier(max_depth=max_depth)
@@ -77,3 +88,24 @@ def create_kn_neighbors(train_x, train_y, k=10):
 	print(' * Dataset:\t\t MNIST')
 	print(' * Train score:\t\t', test_score)
 	return k_neighbors
+
+def create_torch_wrapper(model, device):
+	softmax = torch.nn.Softmax(dim=-1)
+	def wrapper(x):
+		with torch.no_grad():
+			x = np.array(x, dtype=np.float32)
+			x = x.transpose([0,3,1,2])
+			tensor = torch.from_numpy(x).to(device)
+			logits = model(tensor)
+			preds = softmax(logits).cpu().numpy()
+		return preds
+	return wrapper
+
+def create_torch_dataset(batch_size, train=False):
+	transform = transforms.Compose([
+		transforms.ToTensor()])
+	dataset = datasets.MNIST(root='data', train=train,
+		download=True, transform=transform)
+	loader = torch.utils.data.DataLoader(
+		dataset, batch_size, shuffle=True)
+	return loader

@@ -11,26 +11,26 @@ class TorchModel(nn.Module):
 
 	def __init__(self):
 		super(TorchModel, self).__init__()
-		self.conv1  = nn.Conv2d(3, 128, 3, stride=2)
+		self.conv1  = nn.Conv2d(1, 32, 3, stride=2)
+		self.conv2  = nn.Conv2d(32, 32, 3, stride=2)
+		self.conv3  = nn.Conv2d(32, 64, 3, stride=2)
 		self.pool   = nn.MaxPool2d(2, 2)
-		self.conv2  = nn.Conv2d(128, 256, 3, stride=2)
-		self.conv3  = nn.Conv2d(256, 512, 3, stride=2)
-		self.dense1 = nn.Linear(1*1*512, 256)
-		self.dense2 = nn.Linear(256, 10)
+		self.dense1 = nn.Linear(2*2*64, 512)
+		self.dense2 = nn.Linear(512, 10)
 
-		self.objective = nn.CrossEntropyLoss()
+		self.loss_fn = nn.CrossEntropyLoss()
 		self.optimizer = optim.Adam(self.parameters())
 
 	def forward(self, x):
 		# 15 x 15 x 128
 		x = F.relu(self.conv1(x))
 		# 7 x 7 x 128
-		x = self.pool(x)
 		# 3 x 3 x 256
 		x = F.relu(self.conv2(x))
+		#x = self.pool(x)
 		# 1 x 1 x 512
 		x = F.relu(self.conv3(x))
-		x = x.view(-1, 1*1*512)
+		x = x.view(-1, 2*2*64)
 		x = F.relu(self.dense1(x))
 		x = self.dense2(x)
 		return x
@@ -45,7 +45,8 @@ class TorchModel(nn.Module):
 				self.optimizer.zero_grad()
 				# forward pass
 				outputs = self(x.to(device))
-				loss = self.objective(outputs, y.to(device))
+				outputs = F.softmax(outputs, dim=-1)
+				loss = self.loss_fn(outputs, y.to(device))
 				# backward pass
 				loss.backward()
 				self.optimizer.step()
