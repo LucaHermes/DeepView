@@ -21,8 +21,10 @@ def init_inv_umap(config):
 	smoothing_neighbors = config.get('smoothing_neighbors', 
 		defaults.smoothing_neighbors)
 	max_iter = config.get('max_iter', defaults.max_iter)
+	a_scale = config.get('a', defaults.a)
+	b = config.get('b', defaults.b)
 	return InvMapper(neighbors, centroids, smoothing_epochs, 
-		smoothing_neighbors, max_iter)
+		smoothing_neighbors, max_iter, a_scale, b)
 
 class Mapper(abc.ABC):
 
@@ -42,13 +44,16 @@ class Mapper(abc.ABC):
 
 class InvMapper(stocemb.StochasticEmbedding):
 
-	def __init__(self, neighbors, centroids, smoothing_epochs, smoothing_neighbors, max_iter):
+	def __init__(self, neighbors, centroids, smoothing_epochs, smoothing_neighbors, 
+				 max_iter, a, b):
+		super(InvMapper, self).__init__()
 		self.neighbors = neighbors
 		self.centroids = centroids
 		self.max_iter = max_iter
-		super(InvMapper, self).__init__(
-			n_smoothing_epochs=smoothing_epochs,
-			n_smoothing_neighbors=smoothing_neighbors)
+		self.a_scale = a
+		self.b = b
+		self.n_smoothing_epochs = smoothing_epochs
+		self.n_smoothing_neighbors = smoothing_neighbors
 
 	def fit(self, x, y):
 		'''
@@ -62,8 +67,7 @@ class InvMapper(stocemb.StochasticEmbedding):
 		x_min = np.min(x, axis=0)
 		x_max = np.max(x, axis=0)
 		av_range = np.mean(x_max - x_min)
-		self.a = 500/av_range
-		self.b = 1
+		self.a = self.a_scale / av_range
 		self.border_min_dist = av_range*1.1
 
 		self.n_neighbors = int(len(x) * self.neighbors)

@@ -21,7 +21,7 @@ class DeepView:
 		pred_fn	: callable, function
 			Function that takes a single argument, which is data to be classified
 			and returns the prediction logits of the model.
-			For an example, see the demo jupyter notebook
+			For an example, see the demo jupyter notebook:
 			https://github.com/LucaHermes/DeepView/blob/master/DeepView%20Demo.ipynb
 		classes	: list, tuple of str
 			All classes that the classifier uses as a list/tuple of strings.
@@ -38,6 +38,8 @@ class DeepView:
 		lam : float
 			Weights the euclidian metric against the discriminative, classification-
 			based, distance: eucl * lambda + discr * (1 - lambda).
+			To put more emphasis on structural propertiues of the datapoints, use a higher lambda,
+			a lower lambda will put emphasis on the classification properties of the datapoints.
 		resolution : int
 			Resolution of the classification boundary plot.
 		cmap : str
@@ -53,12 +55,12 @@ class DeepView:
 			An object that maps samples from the data input domain to 2D space. The object
 			must have the methods of deepview.embeddings.Mapper. fit is called with a distance matrix
 			of all data samples and transform is called with an image that should be projected to 2D. 
-			Defaults to None, in this case UMAP is taken.
+			Defaults to None, in this case UMAP is used.
 		inv_mapper : object
 			An object that maps samples from the 2D space to the data input domain. The object
 			must have the methods of deepview.embeddings.Mapper. fit is called with 2D points and
 			their according data samples. transform is called with 2D points that should be projected to data space. 
-			Defaults to None, in this case deepview.embeddings.InvMapper is taken.
+			Defaults to None, in this case deepview.embeddings.InvMapper is used.
 		kwargs : dict
 			Configuration for the embeddings in case they are not specifically given in mapper and inv_mapper.
 			Defaults to deepview.config.py. 
@@ -85,7 +87,6 @@ class DeepView:
 		self.interactive = interactive
 		self.title = title
 		self._init_mappers(mapper, inv_mapper, kwargs)
-		self._init_plots()
 
 	@property
 	def num_samples(self):
@@ -180,7 +181,7 @@ class DeepView:
 		self.fig.canvas.mpl_connect('button_press_event', self.show_sample)
 		self.disable_synth = False
 		self.ax.legend()
-		plt.show(block=False)
+		#plt.show(block=False)
 
 	def update_matrix(self, old_matrix, new_values, n_new, n_keep):
 		'''When new distance values are calculated this merges old 
@@ -321,6 +322,9 @@ class DeepView:
 
 	def show(self):
 		'''Shows the current plot.'''
+		if not hasattr(self, 'fig'):
+			self._init_plots()
+
 		x_min, y_min, x_max, y_max = self._get_plot_measures()
 
 		self.cls_plot.set_data(self.classifier_view)

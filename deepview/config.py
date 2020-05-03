@@ -13,3 +13,11 @@ centroid_frac = 0.7
 smoothing_epochs = 0
 smoothing_neighbors = None
 max_iter = 2000
+# This corresponds to the parameter a of UMAP.
+# In this implementation, a is passed as a scaling 
+# factor (s. embeddings.py - InvMapper.fit):
+# scalar / embedding-range, this scalar is passed
+# as the parameter.
+a = 500 # / embedding range
+# This corresponds to the parameter b of UMAP.
+b = 1
