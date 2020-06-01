@@ -109,7 +109,19 @@ class Net(nn.Module):
         x = x.contiguous().view(-1, 4*4*100)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
+        return F.softmax(x, dim=1)
+
+    def predict_numpy(self, x):
+    	# Can be used as the prediction wrapper for DeepView
+    	with torch.no_grad():
+    		is_cuda = next(self.parameters()).is_cuda
+    		device = 'cuda:0' if is_cuda else 'cpu'
+    		x = np.array(x, dtype=np.float32)
+    		x = torch.from_numpy(x).to(device)
+    		log_prob = self.forward(x)
+    		prediction =  log_prob.cpu().numpy()
+    	return prediction
+
 
 def add_backdoor(image):
     if len(image.shape) == 2:
