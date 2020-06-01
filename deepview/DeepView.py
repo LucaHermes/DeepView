@@ -4,12 +4,13 @@ from deepview.fisher_metric import calculate_fisher
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
+import warnings
 
 class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, 
 				 n=3, lam=0.5, resolution=100, cmap='tab10', interactive=True, 
-				 title='DeepView', mapper=None, inv_mapper=None, **kwargs):
+				 title='DeepView', data_viz=None, mapper=None, inv_mapper=None, **kwargs):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
@@ -51,6 +52,10 @@ class DeepView:
 			Otherwise it will be blocking.
 		title : str
 			The title for the plot
+		data_viz : callable, function
+			A function that takes in a single sample in the original sample shape and visualizes it.
+			This function will be called when the DeepView plot is clicked on, with the according data sample
+			or synthesised sample at the click location.
 		mapper : object
 			An object that maps samples from the data input domain to 2D space. The object
 			must have the methods of deepview.embeddings.Mapper. fit is called with a distance matrix
@@ -86,6 +91,7 @@ class DeepView:
 		self.classifier_view = np.array([])
 		self.interactive = interactive
 		self.title = title
+		self.data_viz = data_viz
 		self._init_mappers(mapper, inv_mapper, kwargs)
 
 	@property
@@ -244,8 +250,8 @@ class DeepView:
 		# create grid
 		xs = np.linspace(x_min, x_max, self.resolution)
 		ys = np.linspace(y_min, y_max, self.resolution)
-		grid = np.array(np.meshgrid(xs, ys))
-		grid = np.swapaxes(grid.reshape(grid.shape[0],-1),0,1)
+		self.grid = np.array(np.meshgrid(xs, ys))
+		grid = np.swapaxes(self.grid.reshape(self.grid.shape[0],-1),0,1)
 		
 		# map gridmpoint to images
 		grid_samples = self.inverse(grid)
@@ -259,11 +265,11 @@ class DeepView:
 			# add epsilon for stability
 			mesh_preds[i:n_preds] = self.model(batch) + 1e-8
 
-		mesh_classes = mesh_preds.argmax(axis=1)
-		mesh_max_class = max(mesh_classes)
+		self.mesh_classes = mesh_preds.argmax(axis=1)
+		mesh_max_class = max(self.mesh_classes)
 
 		# get color of gridpoints
-		color = self.cmap(mesh_classes/mesh_max_class)
+		color = self.cmap(self.mesh_classes/mesh_max_class)
 		# scale colors by certainty
 		h = -(mesh_preds*np.log(mesh_preds)).sum(axis=1)/np.log(self.n_classes)
 		h = (h/h.max()).reshape(-1, 1)
@@ -274,15 +280,20 @@ class DeepView:
 		decision_view = color.reshape(self.resolution, self.resolution, 3)
 		return decision_view
 
+	def get_mesh_prediction_at(self, x, y):
+		x_idx = np.abs(self.grid[0,0] - x).argmin(0)
+		y_idx = np.abs(self.grid[1,:,0] - y).argmin(0)
+		mesh = self.mesh_classes.reshape([self.resolution]*2)
+		return mesh[y_idx, x_idx]
+
 	def show_sample(self, event):
 		'''
-		Invoked when the user clicks on the plot.
-		Shows the according sample, for clicks on specific 
-		embedded sample points and the synthesised image otherwise.
+		Invoked when the user clicks on the plot. Determines the
+		embedded or synthesised sample at the click location and 
+		passes it to the data_viz method, together with the prediction, 
+		if present a groun truth label and the 2D click location.
 		'''
-		# don't show this when the data samples are images
-		if not len(self.data_shape) == 3:
-			return
+
 		# when there is an artist attribute, a 
 		# concrete sample was clicked, otherwise
 		# show the according synthesised image
@@ -299,17 +310,33 @@ class DeepView:
 			# workaraound: inverse embedding needs more points
 			# otherwise it doens't work --> [point]*5
 			point = np.array([[ event.xdata , event.ydata ]]*5)
+
+			# if the outside of the plot was clicked, points are None
+			if None in point[0]:
+				return
+
 			sample = self.inverse(point)[0]
 			sample += abs(sample.min())
 			sample /= sample.max()
 			title = 'Synthesised at [%.1f, %.1f]' % tuple(point[0])
+			p, t = self.get_mesh_prediction_at(*point[0]), None
 		else:
 			self.disable_synth = False
 			return
 
-		f, a = plt.subplots()
-		a.imshow(sample.squeeze())
-		a.set_title(title)
+		if self.data_viz is not None:
+			self.data_viz(sample, point, p, t)
+		else:
+			try:
+				f, a = plt.subplots(1, 1)
+				a.imshow(sample)
+				a.set_title(title)
+			except:
+				warnings.warn("Data visualization not possible, as the data points have"
+					"no image shape. Pass a function in the data_viz argument,"
+					"to enable custom data visualization.")
+			finally:
+				plt.close(f)
 			
 	def get_artist_sample(self, point):
 		'''Maps the location of an embedded point to it's image.'''
