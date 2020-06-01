@@ -114,7 +114,9 @@ class DeepView:
 		return stacked.sum(-1)
 
 	def reset(self):
-		'''Resets the state of DeepView to the point of initialization.'''
+		'''
+		Resets the state of DeepView to the point of initialization.
+		'''
 		self.discr_distances = np.array([])
 		self.eucl_distances = np.array([])
 		self.samples = np.empty([0, *self.data_shape])
@@ -124,12 +126,16 @@ class DeepView:
 		self.classifier_view = np.array([])
 
 	def close(self):
-		'''Closes the matplotlib window, terminates DeepView.'''
+		'''
+		Closes the matplotlib window, terminates DeepView.
+		'''
 		plt.close()
 
 	def set_lambda(self, lam):
-		'''Dynamically sets a new lambda and recomputes the
-		embeddings, as the distances will also change.'''
+		'''
+		Dynamically sets a new lambda and recomputes the
+		embeddings, as the distances will also change.
+		'''
 		if self.lam == lam:
 			return
 		self.lam = lam
@@ -147,9 +153,11 @@ class DeepView:
 
 
 	def _get_plot_measures(self):
-		'''Computes the axis limits of the main plot by using
+		'''
+		Computes the axis limits of the main plot by using
 		min/max values of the 2D sample embedding and adding 10%
-		on either side.'''
+		on either side.
+		'''
 		ebd_min = np.min(self.embedded, axis=0)
 		ebd_max = np.max(self.embedded, axis=0)
 		ebd_extent = ebd_max - ebd_min
@@ -160,7 +168,9 @@ class DeepView:
 		return x_min, y_min, x_max, y_max
 
 	def _init_plots(self):
-		'''Initialises matplotlib artists and plots.'''
+		'''
+		Initialises matplotlib artists and plots.
+		'''
 		if self.interactive:
 			plt.ion()
 		self.fig, self.ax = plt.subplots(1, 1, figsize=(8, 8))
@@ -190,8 +200,10 @@ class DeepView:
 		#plt.show(block=False)
 
 	def update_matrix(self, old_matrix, new_values, n_new, n_keep):
-		'''When new distance values are calculated this merges old 
-		and new distances into the same matrix.'''
+		'''
+		When new distance values are calculated this merges old 
+		and new distances into the same matrix.
+		'''
 		to_triu = np.triu(old_matrix, k=1)
 		new_mat = np.zeros([self.num_samples, self.num_samples])
 		new_mat[n_new:,n_new:] = to_triu[:n_keep,:n_keep]
@@ -243,7 +255,9 @@ class DeepView:
 		self.update_mappings()
 
 	def compute_grid(self):
-		'''Computes the visualisation of the decision boundaries.'''
+		'''
+		Computes the visualisation of the decision boundaries.
+		'''
 		print('Computing decision regions ...')
 		# get extent of embedding
 		x_min, y_min, x_max, y_max = self._get_plot_measures()
@@ -324,22 +338,28 @@ class DeepView:
 			self.disable_synth = False
 			return
 
+	
+		# allowed shapes for images are (h,w), (h,w,3), (h,w,4)
+		is_grayscale = len(sample.shape) == 2
+		is_colored = len(sample.shape) == 3 and \
+			(sample.shape[-1] == 3 or sample.shape[-1] == 4)
+
 		if self.data_viz is not None:
 			self.data_viz(sample, point, p, t)
+		# try to show the image, if the shape allows it
+		elif is_grayscale or is_colored:
+			f, a = plt.subplots(1, 1)
+			a.imshow(sample)
+			a.set_title(title)
 		else:
-			try:
-				f, a = plt.subplots(1, 1)
-				a.imshow(sample)
-				a.set_title(title)
-			except:
-				warnings.warn("Data visualization not possible, as the data points have"
-					"no image shape. Pass a function in the data_viz argument,"
-					"to enable custom data visualization.")
-			finally:
-				plt.close(f)
+			warnings.warn("Data visualization not possible, as the data points have"
+				"no image shape. Pass a function in the data_viz argument,"
+				"to enable custom data visualization.")
 			
 	def get_artist_sample(self, point):
-		'''Maps the location of an embedded point to it's image.'''
+		'''
+		Maps the location of an embedded point to it's image.
+		'''
 		sample_id = np.argmin(np.linalg.norm(self.embedded - point, axis=1))
 		sample = self.samples[sample_id]
 		sample = sample + np.abs(sample.min())
@@ -348,7 +368,9 @@ class DeepView:
 		return sample, yp, yt
 
 	def show(self):
-		'''Shows the current plot.'''
+		'''
+		Shows the current plot.
+		'''
 		if not hasattr(self, 'fig'):
 			self._init_plots()
 

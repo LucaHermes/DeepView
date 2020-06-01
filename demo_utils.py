@@ -42,8 +42,6 @@ def make_cifar_dataset():
      	transforms.Normalize(*CIFAR_NORM)])
 	testset = datasets.CIFAR10(root='data', train=False,
 		download=True, transform=transform)
-	to_numpy = lambda s: s.cpu().numpy().transpose([1,2,0])
-	testset = [ [to_numpy(s), t] for s, t in testset ]
 	return testset
 
 def make_digit_dataset(flatten=True):
