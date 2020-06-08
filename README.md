@@ -32,11 +32,11 @@ The following parameters must be specified on initialization:
 |------------------------|-------------------|
 | ```pred_wrapper```     | To enable DeepView to call the classifier |
 | ```classes```          | All possible classes in the data |
+| ```lam```              | Controls the amount of euclidean regularization, the larger the more. Between 0 and 1. |
 | ```max_samples```      | The maximum amount of samples that DeepView will keep track of |
 | ```batch_size```       | The maximal size of batches that are passed to the classifier (the ```pred_wrapper```-function) |
 | ```data_shape```       | Shape of the input data (complete shape; for images, include the channel dimension) |
 | ```n```                | Number of interpolations for distance calculation of two images. |
-| ```lam```              | Weighting factor for the euclidian component of the distance calculation. |
 | ```resolution```       | x- and y- Resolution of the decision boundary plot |
 | ```cmap```             | Name of the colormap that should be used in the plots. |
 | ```interactive```      | When ```interactive``` is True, this method is non-blocking to allow plot updates. When ```interactive``` is False, this method is blocking to prevent termination of python scripts. |
