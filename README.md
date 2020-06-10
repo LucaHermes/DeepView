@@ -25,7 +25,7 @@ To run the notebook ```PyTorch``` and ```torchvision``` are required as well. We
     * When ```interactive``` is True, this method is non-blocking to allow plot updates.
     * When ```interactive``` is False, this method is blocking to prevent termination of python scripts.
     
-The following parameters must be specified on initialization:
+The following parameters may be specified on initialization:
 
 
 | Variable               | Meaning           |
@@ -45,7 +45,7 @@ The following parameters must be specified on initialization:
 | ```mapper```           | An object that maps samples from the data space to 2D space. Normally UMAP is used for this, but you can pass a custom mapper as well. (optional)  |
 | ```inv_mapper```       | An object that maps samples from the 2D space to the data space. Normally ```deepview.embeddings.InvMapper``` is used for this, but you can pass a custom inverse mapper as well. (optional)  |
 | ```kwargs```       | Configuration for the embeddings in case they are not specifically given in mapper and inv_mapper.
-			Defaults to ```deepview.config.py```.  (optional)  |
+Defaults to ```deepview.config.py```.  (optional)  |
 
 ## The λ-Parameter
 
