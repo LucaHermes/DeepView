@@ -57,12 +57,12 @@ DeepView essentially consists of three parts: an estimation of the Fisher metric
 |Variable            | Meaning          |
 |--------------------|------------------|
 | ```lam```          | (Fisher metric parameter) Controls the amount of euclidean regularization of the Fisher metric, the larger the more. Between 0 and 1, default 0.65. |
-| ```n_neighbors```  | (UMAP metric parameter) Number of neighbors used in UMAP. Determines how many points are considered to be close for each data point, roughly speaking. Default is 30. |
+| ```n_neighbors```  | (UMAP parameter) Number of neighbors used in UMAP. Determines how many points are considered to be close for each data point, roughly speaking. Default is 30. |
 | ```a```            | (inverse mapping parameter) Determines the nonlinearity of the inverse mapping. Large values correspond to nonlinear functions. Compared to the definition in the paper, we additionally devide by the range of the data, such that the letter can be ignored in setting this parameter. Default is 500. 
-| ```min_dist```     | (UMAP metric parameter) The minimum distance between embedded points. Smaller values cause more clustered or clumped visualizations. Interdepends with ```spread```. Default is 0.1. |
-| ```spread```       | (UMAP metric parameter) The scale of embedded points. Together with ```min_dist``` causes more/less clustering. Default is 1.0.|
+| ```min_dist```     | (UMAP parameter) The minimum distance between embedded points. Smaller values cause more clustered or clumped visualizations. Interdepends with ```spread```. Default is 0.1. |
+| ```spread```       | (UMAP parameter) The scale of embedded points. Together with ```min_dist``` causes more/less clustering. Default is 1.0.|
 |```n```             | (Fisher metric parameter) Number of interpolation steps for distance calculation between two points. In the paper, this is also called n, default 5. |
-| ```random_state``` | (UMAP metric parameter) Seed used by UMAP. |
+| ```random_state``` | (UMAP parameter) Seed used by UMAP. |
 
 The UMAP and inverse mapping parameters are set with the ```_init_mappers``` function (see ```DeepView Demo_FashionMnist_BackdoorAttack``` for an example).
 
