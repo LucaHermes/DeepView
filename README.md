@@ -25,18 +25,20 @@ To run the notebook ```PyTorch``` and ```torchvision``` are required as well. We
     * When ```interactive``` is True, this method is non-blocking to allow plot updates.
     * When ```interactive``` is False, this method is blocking to prevent termination of python scripts.
     
-The following parameters may be specified on initialization:
+
+### Basic parameters
+
+The following parameters control the basic functionality. We mark the absolutely required parameters with an exclamation mark (!) at the beginning.
+(Parameters controlling the behaviour of DeepView are listed in the subsection below.)
 
 
 | Variable               | Meaning           |
 |------------------------|-------------------|
-| ```pred_wrapper```     | Wrapper function allowing DeepView to use your model. Expects a single argument, which should be a batch of samples to classify. Returns (valid / softmaxed) prediction probabilities for this batch of samples. |
-| ```classes```          | Names of all different classes in the data. |
-| ```max_samples```      | The maximum amount of samples that DeepView will keep track of. When more samples are added, the oldest samples are removed from DeepView. |
-| ```batch_size```       | The batch size used for classification |
-| ```data_shape```       | Shape of the input data (complete shape; excluding the batch dimension) |
-| ```n```                | Number of interpolation steps for distance calculation between two points. In the paper, this is also called n, default 3.  |
-| ```lam```              | Weights the euclidian distance against the discriminative distance. Between 0 and 1, default 0.65. |
+| (!)```pred_wrapper```     | Wrapper function allowing DeepView to use your model. Expects a single argument, which should be a batch of samples to classify. Returns (valid / softmaxed) prediction probabilities for this batch of samples. |
+| (!)```classes```          | Names of all different classes in the data. |
+| (!)```max_samples```      | The maximum amount of samples that DeepView will keep track of. When more samples are added, the oldest samples are removed from DeepView. |
+| (!)```batch_size```       | The batch size used for classification |
+| (!)```data_shape```       | Shape of the input data (complete shape; excluding the batch dimension) |
 | ```resolution```       | x- and y- Resolution of the decision boundary plot. A high resolution will compute significantly longer than a lower resolution, as every point must be classified, default 100. |
 | ```cmap```             | Name of the colormap that should be used in the plots, default 'tab10'. |
 | ```interactive```      | When ```interactive``` is True, this method is non-blocking to allow plot updates. When ```interactive``` is False, this method is blocking to prevent termination of python scripts, default True. |
@@ -47,9 +49,26 @@ The following parameters may be specified on initialization:
 | ```kwargs```       | Configuration for the embeddings in case they are not specifically given in mapper and inv_mapper.
 Defaults to ```deepview.config.py```.  (optional)  |
 
+
+### Parameters that influence the resulting visualization
+
+DeepView essentially consists of three parts: an estimation of the Fisher metric, dimensionality reduction with UMAP and an inverse mapping. These are computed in this order, and hence the parameters of the Fisher metric influence both projections. The following lists the parameters of DeepView sortet by their importance (the first is the most important one):
+
+|Variable            | Meaning          |
+|--------------------|------------------|
+| ```lam```          | (Fisher metric parameter) Controls the amount of euclidean regularization of the Fisher metric, the larger the more. Between 0 and 1, default 0.65. |
+| ```n_neighbors```  | (UMAP metric parameter) Number of neighbors used in UMAP. Determines how many points are considered to be close for each data point, roughly speaking. Default is 30. |
+| ```a```            | (inverse mapping parameter) Determines the nonlinearity of the inverse mapping. Large values correspond to nonlinear functions. Compared to the definition in the paper, we additionally devide by the range of the data, such that the letter can be ignored in setting this parameter. Default is 500. 
+| ```min_dist```     | (UMAP metric parameter) The minimum distance between embedded points. Smaller values cause more clustered or clumped visualizations. Interdepends with ```spread```. Default is 0.1. |
+| ```spread```       | (UMAP metric parameter) The scale of embedded points. Together with ```min_dist``` causes more/less clustering. Default is 1.0.|
+|```n```             | (Fisher metric parameter) Number of interpolation steps for distance calculation between two points. In the paper, this is also called n, default 5. |
+| ```random_state``` | (UMAP metric parameter) Seed used by UMAP. |
+
+The UMAP and inverse mapping parameters are set with the ```_init_mappers``` function (see ```DeepView Demo_FashionMnist_BackdoorAttack``` for an example).
+
 ## The λ-Parameter
 
-The λ-Hyperparameter weights the euclidian distance component against the discriminative (Jensen-Shannon) distance component:
+The λ-Hyperparameter (```lam```) weights the euclidian distance component against the discriminative (Jensen-Shannon) distance component:
 
 <center>
 <img alt="distance_equation" src="https://user-images.githubusercontent.com/30961397/84257875-557b5e00-ab16-11ea-9e75-fe1d7795739b.png" width=400px>
