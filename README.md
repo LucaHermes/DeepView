@@ -46,8 +46,7 @@ The following parameters control the basic functionality. We mark the absolutely
 | ```data_viz```         | DeepView has a reactive plot, that responds to mouse clicks and shows the according data sample, when it is clicked. You can pass a custom visualization function, if ```data_viz``` is None, DeepView will try to show each sample as an image, if possible. (optional, default None)  |
 | ```mapper```           | An object that maps samples from the data space to 2D space. Normally UMAP is used for this, but you can pass a custom mapper as well. (optional)  |
 | ```inv_mapper```       | An object that maps samples from the 2D space to the data space. Normally ```deepview.embeddings.InvMapper``` is used for this, but you can pass a custom inverse mapper as well. (optional)  |
-| ```kwargs```       | Configuration for the embeddings in case they are not specifically given in mapper and inv_mapper.
-Defaults to ```deepview.config.py```.  (optional)  |
+| ```kwargs```       | Configuration for the embeddings in case they are not specifically given in mapper and inv_mapper. Defaults to ```deepview.config.py```.  (optional)  |
 
 
 ### Parameters that influence the resulting visualization
