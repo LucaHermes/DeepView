@@ -362,7 +362,7 @@ class DeepView:
 		'''
 		sample_id = np.argmin(np.linalg.norm(self.embedded - point, axis=1))
 		sample = self.samples[sample_id]
-		sample = sample + np.abs(sample.min())
+		sample = sample - sample.min()
 		sample = sample / sample.max()
 		yp, yt = (int(self.y_pred[sample_id]), int(self.y_true[sample_id]))
 		return sample, yp, yt
