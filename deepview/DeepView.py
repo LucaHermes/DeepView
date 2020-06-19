@@ -345,7 +345,7 @@ class DeepView:
 			(sample.shape[-1] == 3 or sample.shape[-1] == 4)
 
 		if self.data_viz is not None:
-			self.data_viz(sample, point, p, t)
+			self.data_viz(sample, point, p, t, title)
 		# try to show the image, if the shape allows it
 		elif is_grayscale or is_colored:
 			f, a = plt.subplots(1, 1)
