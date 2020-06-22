@@ -87,7 +87,7 @@ def distance_row(model, x, y, n, batch_size, n_classes):
 	
 	return discriminative.sum(axis=1), euclidian
 
-def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
+def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes, verbose=True):
 
 	n_xs = len(from_samples)
 	n_ys = len(to_samples)
@@ -116,6 +116,7 @@ def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes):
 		eucl_distances[i] = eucl_row
 
 		if (i+1) % (n_xs//5) == 0:
-			print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
+			if verbose:
+				print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
 
 	return discr_distances, eucl_distances

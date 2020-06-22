@@ -1,15 +1,16 @@
-from deepview.embeddings import init_umap, init_inv_umap#Mapper, InvMapper
+from deepview.embeddings import init_umap, init_inv_umap
 from deepview.fisher_metric import calculate_fisher
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import warnings
+import os
 
 class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, 
-				 n=5, lam=0.65, resolution=100, cmap='tab10', interactive=True, 
+				 n=5, lam=0.65, resolution=100, cmap='tab10', interactive=True, verbose=True,
 				 title='DeepView', data_viz=None, mapper=None, inv_mapper=None, **kwargs):
 		'''
 		This class can be used to embed high dimensional data in
@@ -50,6 +51,8 @@ class DeepView:
 		interactive : bool
 			If interactive is true, the show() method won't be blocking, so code execution will continue.
 			Otherwise it will be blocking.
+		verbose : bool
+			If true, outputs information about the visualization progress.
 		title : str
 			The title for the plot
 		data_viz : callable, function
@@ -91,6 +94,7 @@ class DeepView:
 		self.y_true = np.array([])
 		self.y_pred = np.array([])
 		self.classifier_view = np.array([])
+		self.verbose = verbose
 		self.interactive = interactive
 		self.title = title
 		self.data_viz = data_viz
@@ -98,6 +102,9 @@ class DeepView:
 
 	@property
 	def num_samples(self):
+		'''
+		Returns the number of samples in DeepView.
+		'''
 		return len(self.samples)
 
 	@property
@@ -135,8 +142,8 @@ class DeepView:
 
 	def set_lambda(self, lam):
 		'''
-		Dynamically sets a new lambda and recomputes the
-		embeddings, as the distances will also change.
+		Sets a new lambda and recomputes the embeddings and
+		decision boundary grid.
 		'''
 		if self.lam == lam:
 			return
@@ -195,11 +202,11 @@ class DeepView:
 				fillstyle='none', ms=12, mew=2.5, zorder=1)
 			self.sample_plots.append(plot[0])
 
+		# set the mouse-event listeners
 		self.fig.canvas.mpl_connect('pick_event', self.show_sample)
 		self.fig.canvas.mpl_connect('button_press_event', self.show_sample)
 		self.disable_synth = False
 		self.ax.legend()
-		#plt.show(block=False)
 
 	def update_matrix(self, old_matrix, new_values, n_new, n_keep):
 		'''
@@ -210,11 +217,12 @@ class DeepView:
 		new_mat = np.zeros([self.num_samples, self.num_samples])
 		new_mat[n_new:,n_new:] = to_triu[:n_keep,:n_keep]
 		new_mat[:n_new] = new_values
-		# update the old distance matrix
 		return new_mat + new_mat.transpose()
 
 	def update_mappings(self):
-		print('Embedding samples ...')
+		if self.verbose:
+			print('Embedding samples ...')
+		
 		self.mapper.fit(self.distances)
 		self.embedded = self.mapper.transform(self.distances)
 		self.inverse.fit(self.embedded, self.samples)
@@ -246,7 +254,7 @@ class DeepView:
 		xs = samples
 		ys = self.samples
 		new_discr, new_eucl = calculate_fisher(self.model, xs, ys, self.n, 
-			self.batch_size, self.n_classes)
+			self.batch_size, self.n_classes, self.verbose)
 
 		# add new distances
 		n_keep = self.max_samples - n_new
@@ -260,7 +268,8 @@ class DeepView:
 		'''
 		Computes the visualisation of the decision boundaries.
 		'''
-		print('Computing decision regions ...')
+		if self.verbose:
+			print('Computing decision regions ...')
 		# get extent of embedding
 		x_min, y_min, x_max, y_max = self._get_plot_measures()
 		# create grid
@@ -405,19 +414,16 @@ class DeepView:
 		for c in range(self.n_classes):
 			data = self.embedded[self.y_true==c]
 			self.sample_plots[c].set_data(data.transpose())
-			#plot = ax.plot(*data.transpose(), 'o', c=self.cmap(c/9), 
-			#	label=self.classes[c])
 
 		for c in range(self.n_classes):
 			data = self.embedded[np.logical_and(self.y_pred==c, self.y_true!=c)]
 			self.sample_plots[self.n_classes+c].set_data(data.transpose())
-			#plot = ax.plot(*data.transpose(), 'o', markeredgecolor=self.cmap(c/9), 
-			#	fillstyle='none', ms=200, linewidth=3)
 
+		if os.name == 'posix':
+			self.fig.canvas.manager.window.raise_()
+			
 		self.fig.canvas.draw()
 		self.fig.canvas.flush_events()
-		#self.fig.show()
-		self.fig.canvas.manager.window.raise_()
 		plt.show()
 
 	@staticmethod
