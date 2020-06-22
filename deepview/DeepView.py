@@ -55,7 +55,9 @@ class DeepView:
 		data_viz : callable, function
 			A function that takes in a single sample in the original sample shape and visualizes it.
 			This function will be called when the DeepView plot is clicked on, with the according data sample
-			or synthesised sample at the click location.
+			or synthesised sample at the click location. If none is given, samples can still be visualized
+			automatically, as long as they have a shape like: (h,w), (h,w,3), (h,w,4), (3,h,w), (4,h,w).
+			In this case, the values are scaled to the interval [0, 1].
 		mapper : object
 			An object that maps samples from the data input domain to 2D space. The object
 			must have the methods of deepview.embeddings.Mapper. fit is called with a distance matrix
@@ -300,6 +302,16 @@ class DeepView:
 		mesh = self.mesh_classes.reshape([self.resolution]*2)
 		return mesh[y_idx, x_idx]
 
+	def is_image(self, sample):
+		'''
+		Checks if the given sample can be plotted as an image.
+		Allowed shapes for images are (h,w), (h,w,3), (h,w,4).
+		'''
+		is_grayscale = len(sample.shape) == 2
+		is_colored = len(sample.shape) == 3 and \
+			(sample.shape[-1] == 3 or sample.shape[-1] == 4)
+		return is_grayscale or is_colored
+
 	def show_sample(self, event):
 		'''
 		Invoked when the user clicks on the plot. Determines the
@@ -338,24 +350,29 @@ class DeepView:
 			self.disable_synth = False
 			return
 
-	
-		# allowed shapes for images are (h,w), (h,w,3), (h,w,4)
-		is_grayscale = len(sample.shape) == 2
-		is_colored = len(sample.shape) == 3 and \
-			(sample.shape[-1] == 3 or sample.shape[-1] == 4)
+		is_image = self.is_image(sample)
+		rank_perm = np.roll(range(len(sample.shape)), -1)
+		sample_T = sample.transpose(rank_perm)
+		is_transformed_image = self.is_image(sample_T)
 
 		if self.data_viz is not None:
-			self.data_viz(sample, point, p, t, title)
+			self.data_viz(sample, point, p, t)
+			return
 		# try to show the image, if the shape allows it
-		elif is_grayscale or is_colored:
-			f, a = plt.subplots(1, 1)
-			a.imshow(sample)
-			a.set_title(title)
+		elif is_image:
+			img = sample - sample.min()
+		elif is_transformed_image:
+			img = sample_T - sample_T.min()
 		else:
 			warnings.warn("Data visualization not possible, as the data points have"
 				"no image shape. Pass a function in the data_viz argument,"
 				"to enable custom data visualization.")
-			
+			return
+
+		f, a = plt.subplots(1, 1)
+		a.imshow(img / img.max())
+		a.set_title(title)
+
 	def get_artist_sample(self, point):
 		'''
 		Maps the location of an embedded point to it's image.

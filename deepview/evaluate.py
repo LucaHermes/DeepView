@@ -85,7 +85,7 @@ def evaluate_inv_umap(deepview, X, Y, train_frac=.7):
 
     # get DeepView an untrained inverse mapper 
     # and train it on the train set
-    deepview.inverse = init_inv_umap({})
+    deepview.inverse = init_inv_umap()
     deepview.inverse.fit(train_embeded, train_samples)
 
     # apply inverse mapping to embedded samples and

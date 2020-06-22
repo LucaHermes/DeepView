@@ -4,7 +4,9 @@ import deepview.config as defaults
 import numpy as np
 import abc
 
-def init_umap(config):
+def init_umap(config=None):
+	if config is None:
+		config = {}
 	n_neighbors = config.get('n_neighbors', defaults.n_neighbors)
 	min_dist = config.get('min_dist', defaults.min_dist)
 	spread = config.get('spread', defaults.spread)
@@ -13,7 +15,9 @@ def init_umap(config):
 	return umap.UMAP(metric='precomputed', n_neighbors=n_neighbors,
 		random_state=random_state, spread=spread, min_dist=min_dist, verbose=verbose)
 
-def init_inv_umap(config):
+def init_inv_umap(config=None):
+	if config is None:
+		config = {}
 	neighbors = config.get('neighbor_frac', defaults.neighbor_frac)
 	centroids = config.get('centroid_frac', defaults.centroid_frac)
 	smoothing_epochs = config.get('smoothing_epochs', 
