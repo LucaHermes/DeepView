@@ -193,8 +193,8 @@ def test(model, device, test_loader):
 
 def mnist_visualization(image, point2d, pred, label=None):
     '''
-    Demo visualization method for visualizing a 64-dim vector as 8x8-image.
-    Used in demp for MNIST-Datapoints.
+    Demo visualization method for visualizing a 64-dim vector as an 8x8-image.
+    Used in demo for MNIST-Datapoints.
     '''
     f, a = plt.subplots()
     a.set_title('Prediction: %d' % pred)
