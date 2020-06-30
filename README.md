@@ -10,7 +10,7 @@ To run the notebook ```PyTorch``` and ```torchvision``` are required as well. We
 ## Installation
 
  1. Download the repository
- 2. Inside the DeepView-directory, run ```pip install -e .```
+ 2. Inside the DeepView-directory, run ```pip install -e .```<br>or copy the ```deepview``` folder into your working directory
 
 ## Usage Instructions
 
