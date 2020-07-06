@@ -246,7 +246,8 @@ class DeepView:
 		# add new samples and remove depricated samples
 		# and get predictions for the new samples
 		self.samples = np.concatenate((samples, self.samples))[:self.max_samples]
-		Y_preds = self.model(samples).argmax(axis=1)
+		Y_probs = np.array(self.model(samples))
+		Y_preds = Y_probs.argmax(axis=1)
 		self.y_pred = np.concatenate((Y_preds, self.y_pred))[:self.max_samples]
 		self.y_true = np.concatenate((labels, self.y_true))[:self.max_samples]
 
@@ -288,7 +289,7 @@ class DeepView:
 			n_preds = min(i+self.batch_size, n_points)
 			batch = grid_samples[i:n_preds]
 			# add epsilon for stability
-			mesh_preds[i:n_preds] = self.model(batch) + 1e-8
+			mesh_preds[i:n_preds] = np.array(self.model(batch)) + 1e-8
 
 		self.mesh_classes = mesh_preds.argmax(axis=1)
 		mesh_max_class = max(self.mesh_classes)

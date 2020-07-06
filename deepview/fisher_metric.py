@@ -61,6 +61,7 @@ def predict_many(model, x, n_classes, batch_size):
 		r1, r2 = b*batch_size, (b+1)*batch_size
 		inputs = x_reshape[r1:r2]
 		pred = model(inputs)
+		pred = np.array(pred)
 		preds[r1:r2] = pred
 	
 	np_preds = np.vsplit(preds, orig_shape[0])
