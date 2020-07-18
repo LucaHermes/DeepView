@@ -5,7 +5,7 @@ This is an implementation of the DeepView framework that was presented in this p
 ## Requirements
 
 All requirements to run DeepView are in ```requirements.txt```. 
-To run the notebook ```PyTorch``` and ```torchvision``` are required as well. We ran the Demo with versions ```torch==1.3.1``` and ```torchvision==0.4.2```.
+To run the notebook ```PyTorch```/```torchvision``` and ```Tensorflow 2``` are required as well. We ran the Demo with versions ```torch==1.3.1```, ```torchvision==0.4.2```, ```tensorflow==2.0.0``` or for gpu support ```tensorflow-gpu==2.0.0```.
 
 ## Installation
 
@@ -16,7 +16,7 @@ To run the notebook ```PyTorch``` and ```torchvision``` are required as well. We
 
 > For detailed usage, look at the demo notebook ```DeepView Demo.ipynb``` and ```demo.py```
  
- 1. To enable deepview to call the classifier, a wrapper-function (like ```pred_wrapper``` in the Demo notebook) must be provided. DeepView will pass a numpy array of samples to this function and as a return, it expects according class probabilities from the classifier as numpy arrays.
+ 1. To enable deepview to call the classifier, a wrapper-function (like ```pred_wrapper``` in the Demo notebook) must be provided. DeepView will pass a numpy array of samples to this function and as a return, it expects according class probabilities (valid probability distribution, not the logits) from the classifier as numpy arrays.
  2. Initialize DeepView-object and pass the created method to the constructor
  3. Run your code and call ```add_samples(samples, labels)``` at any time to add samples to the visualization together with the ground truth labels.
     * The ground truth labels will be visualized along with the predicted labels
