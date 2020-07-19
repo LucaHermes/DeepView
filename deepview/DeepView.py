@@ -22,7 +22,7 @@ class DeepView:
 		----------
 		pred_fn	: callable, function
 			Function that takes a single argument, which is data to be classified
-			and returns the prediction logits of the model.
+			and returns the prediction probabilities (valid / softmaxed) of the model.
 			For an example, see the demo jupyter notebook:
 			https://github.com/LucaHermes/DeepView/blob/master/DeepView%20Demo.ipynb
 		classes	: list, tuple of str
