@@ -208,11 +208,13 @@ class DeepView:
 		self.disable_synth = False
 		self.ax.legend()
 
-	def update_matrix(self, old_matrix, new_values, n_new, n_keep):
+	def update_matrix(self, old_matrix, new_values):
 		'''
 		When new distance values are calculated this merges old 
 		and new distances into the same matrix.
 		'''
+		n_new = new_values.shape[0]
+		n_keep = self.max_samples - n_new
 		to_triu = np.triu(old_matrix, k=1)
 		new_mat = np.zeros([self.num_samples, self.num_samples])
 		new_mat[n_new:,n_new:] = to_triu[:n_keep,:n_keep]
@@ -228,6 +230,17 @@ class DeepView:
 		self.inverse.fit(self.embedded, self.samples)
 		self.classifier_view = self.compute_grid()
 
+	def queue_samples(self, samples, labels, preds):
+		'''
+		Adds samples labels and predictions to the according lists of
+		this deepview object. Old values will be discarded, when there are 
+		more then max_samples.
+		'''
+		# add new samples and remove depricated samples
+		self.samples = np.concatenate((samples, self.samples))[:self.max_samples]
+		self.y_pred = np.concatenate((preds, self.y_pred))[:self.max_samples]
+		self.y_true = np.concatenate((labels, self.y_true))[:self.max_samples]
+
 	def add_samples(self, samples, labels):
 		'''
 		Adds samples points to the visualization.
@@ -239,28 +252,18 @@ class DeepView:
 		labels : array-like
 			List of labels for the sample points [n_samples, 1]
 		'''
-		# prevent new samples to be bigger then maximum
-		samples = samples[:self.max_samples]
-		n_new = len(samples)
-
-		# add new samples and remove depricated samples
-		# and get predictions for the new samples
-		self.samples = np.concatenate((samples, self.samples))[:self.max_samples]
+		# get predictions for the new samples
 		Y_probs = np.array(self.model(samples))
 		Y_preds = Y_probs.argmax(axis=1)
-		self.y_pred = np.concatenate((Y_preds, self.y_pred))[:self.max_samples]
-		self.y_true = np.concatenate((labels, self.y_true))[:self.max_samples]
+		# add new values to the DeepView lists
+		self.queue_samples(samples, labels, Y_preds)
 
 		# calculate new distances
-		xs = samples
-		ys = self.samples
-		new_discr, new_eucl = calculate_fisher(self.model, xs, ys, self.n, 
-			self.batch_size, self.n_classes, self.verbose)
-
+		new_discr, new_eucl = calculate_fisher(self.model, samples, self.samples, 
+			self.n, self.batch_size, self.n_classes, self.verbose)
 		# add new distances
-		n_keep = self.max_samples - n_new
-		self.discr_distances = self.update_matrix(self.discr_distances, new_discr, n_new, n_keep)
-		self.eucl_distances = self.update_matrix(self.eucl_distances, new_eucl, n_new, n_keep)
+		self.discr_distances = self.update_matrix(self.discr_distances, new_discr)
+		self.eucl_distances = self.update_matrix(self.eucl_distances, new_eucl)
 
 		# update mappings
 		self.update_mappings()
