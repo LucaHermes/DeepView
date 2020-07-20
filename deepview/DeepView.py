@@ -9,8 +9,8 @@ import os
 
 class DeepView:
 
-	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, 
-				 n=5, lam=0.65, resolution=100, cmap='tab10', interactive=True, verbose=True,
+	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, n=5, 
+				 lam=0.65, resolution=100, cmap='tab10', interactive=True, verbose=True,
 				 title='DeepView', data_viz=None, mapper=None, inv_mapper=None, **kwargs):
 		'''
 		This class can be used to embed high dimensional data in

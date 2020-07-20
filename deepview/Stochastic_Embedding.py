@@ -403,13 +403,13 @@ class StochasticEmbedding(BaseEstimator):
             print("compute triangolation")
         self.min_,self.max_ = np.min(X,axis=0)-self.border_min_dist,np.max(X,axis=0)+self.border_min_dist
         if lab is None:
-            centroieds = KMeans(n_clusters=n_centroids,n_jobs=-1).fit(X).cluster_centers_
+            centroieds = KMeans(n_clusters=n_centroids).fit(X).cluster_centers_
         else:
             n = lab.max()+1
             labY = np.zeros( (X.shape[0],n) )
             for i in range(lab.shape[0]):
                 labY[i,lab[i]] = 10
-            centroieds = KMeans(n_clusters=n_centroids,n_jobs=-1).fit(X,y=lab).cluster_centers_
+            centroieds = KMeans(n_clusters=n_centroids).fit(X,y=lab).cluster_centers_
         border = np.array([[self.min_[0],self.min_[1]],[self.max_[0],self.min_[1]],[self.min_[0],self.max_[1]],[self.max_[0],self.max_[1]]])
         self._centroieds = np.concatenate((border,centroieds), axis=0)
         
