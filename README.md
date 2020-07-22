@@ -1,7 +1,7 @@
 # DeepView - Classification visualization
 
-This is an implementation of the DeepView framework that was presented in the paper:
-*Schulz, A., Hinder, F., & Hammer, B. (2020). DeepView: Visualizing Classification Boundaries of Deep Neural Networks as Scatter Plots Using Discriminative Dimensionality Reduction. IJCAI 2020* [(open access)](https://www.ijcai.org/Proceedings/2020/319). Also available on [Arxiv](https://arxiv.org/abs/1909.09154).
+This is an implementation of the DeepView framework that was presented in the paper:  
+*[Schulz, A., Hinder, F., & Hammer, B. (2020)](https://www.ijcai.org/Proceedings/2020/319). DeepView: Visualizing Classification Boundaries of Deep Neural Networks as Scatter Plots Using Discriminative Dimensionality Reduction. IJCAI 2020.* (open access). Also available on [Arxiv](https://arxiv.org/abs/1909.09154).
 
 ## Requirements
 
