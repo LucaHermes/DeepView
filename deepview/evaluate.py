@@ -22,7 +22,7 @@ def leave_one_out_knn_dist_err(dists, labs, n_neighbors=5):
     # calculate the prediction error
     return sum(pred_labs != labs)/labs.shape[0]
 
-def evaluate_umap(deepview, X, Y):
+def evaluate_umap(deepview, X, Y, return_values=False):
     if len(np.shape(X)) > 2:
         bs = len(X)
         X = X.reshape(bs, -1)
@@ -34,9 +34,9 @@ def evaluate_umap(deepview, X, Y):
     dists = deepview.distances
 
     umap_unsup = umap.UMAP(n_neighbors=neighbors, random_state=11*12*13)
-    embedding_unsup= umap_unsup.fit_transform(X)
+    embedding_unsup = umap_unsup.fit_transform(X)
 
-    eucl_dists = distan.pdist(embedding_sup)
+    eucl_dists = distan.pdist(X)
     eucl_dists = distan.squareform(eucl_dists)
 
     # calc dists in fish umap proj
@@ -47,24 +47,38 @@ def evaluate_umap(deepview, X, Y):
     euclUmap_dists = distan.pdist(embedding_unsup)
     euclUmap_dists = distan.squareform(euclUmap_dists)
 
-    eucl_err   = leave_one_out_knn_dist_err(eucl_dists, Y, n_neighbors=5)
-    fish_err   = leave_one_out_knn_dist_err(dists, Y, n_neighbors=5)
-    fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, Y, n_neighbors=5)
-    euclUm_err = leave_one_out_knn_dist_err(euclUmap_dists, Y, n_neighbors=5)
-
-    print("orig labs, knn err: eucl / fish", eucl_err, "/", fish_err)
-    #print("eucl / fish / fish umap proj knn err", eucl_err, "/", fish_err, "/", fishUm_err)
-    print("orig labs, knn err in proj space: eucl / fish", euclUm_err, "/", fishUm_err)
-
+    label_eucl_err   = leave_one_out_knn_dist_err(eucl_dists, Y, n_neighbors=5)
+    label_fish_err   = leave_one_out_knn_dist_err(dists, Y, n_neighbors=5)
+    label_fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, Y, n_neighbors=5)
+    label_euclUm_err = leave_one_out_knn_dist_err(euclUmap_dists, Y, n_neighbors=5)
 
     # comparison to classifier labels
-    eucl_err   = leave_one_out_knn_dist_err(eucl_dists, pred_labs, n_neighbors=5)
-    fish_err   = leave_one_out_knn_dist_err(dists, pred_labs, n_neighbors=5)
-    fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, pred_labs, n_neighbors=5)
-    euclUm_err = leave_one_out_knn_dist_err(euclUmap_dists, pred_labs, n_neighbors=5)
+    pred_eucl_err   = leave_one_out_knn_dist_err(eucl_dists, pred_labs, n_neighbors=5)
+    pred_fish_err   = leave_one_out_knn_dist_err(dists, pred_labs, n_neighbors=5)
+    pred_fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, pred_labs, n_neighbors=5)
+    pred_euclUm_err = leave_one_out_knn_dist_err(euclUmap_dists, pred_labs, n_neighbors=5)
 
-    print("classif labs, knn err: eucl / fish", eucl_err, "/", fish_err)
-    print("classif labs, knn acc in proj space: eucl / fish", '%.1f'%(100 -100*euclUm_err), "/", '%.1f'%(100 -100*fishUm_err))
+    if return_values:
+        return {
+            'true'  : { 
+                'eucl'      : label_eucl_err,
+                'fish'      : label_fish_err,
+                'eucl_umap' : label_euclUm_err,
+                'fish_umap' : label_fishUm_err },
+            'pred'  : { 
+                'eucl'      : pred_eucl_err,
+                'fish'      : pred_fish_err,
+                'eucl_umap' : pred_euclUm_err,
+                'fish_umap' : pred_fishUm_err }
+        }
+    else:
+        print("orig labs, knn err: eucl / fish", label_eucl_err, "/", label_fish_err)
+        #print("eucl / fish / fish umap proj knn err", label_eucl_err, "/", label_fish_err, "/", label_fishUm_err)
+        print("orig labs, knn err in proj space: eucl / fish", label_euclUm_err, "/", label_fishUm_err)
+        print("classif labs, knn err: eucl / fish", pred_eucl_err, "/", pred_fish_err)
+        print("classif labs, knn acc in proj space: eucl / fish", 
+            '%.1f'%(100 -100*pred_euclUm_err), "/", 
+            '%.1f'%(100 -100*pred_fishUm_err))
 
 
 def evaluate_inv_umap(deepview, X, Y, train_frac=.7):

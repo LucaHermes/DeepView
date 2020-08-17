@@ -208,6 +208,20 @@ class DeepView:
 		self.disable_synth = False
 		self.ax.legend()
 
+	def _predict_batches(self, x):
+		'''
+		Predicts an array of samples batchwise.
+		'''
+		n_inputs = len(x)
+		preds = np.zeros([n_inputs, self.n_classes])
+
+		for i in range(0, n_inputs, self.batch_size):
+			n_preds = min(i + self.batch_size, n_inputs)
+			batch = x[i:n_preds]
+			preds[i:n_preds] = np.array(self.model(batch))
+
+		return preds
+
 	def update_matrix(self, old_matrix, new_values):
 		'''
 		When new distance values are calculated this merges old 
@@ -253,7 +267,7 @@ class DeepView:
 			List of labels for the sample points [n_samples, 1]
 		'''
 		# get predictions for the new samples
-		Y_probs = np.array(self.model(samples))
+		Y_probs = self._predict_batches(samples)
 		Y_preds = Y_probs.argmax(axis=1)
 		# add new values to the DeepView lists
 		self.queue_samples(samples, labels, Y_preds)
@@ -284,15 +298,9 @@ class DeepView:
 		
 		# map gridmpoint to images
 		grid_samples = self.inverse(grid)
-		n_points = self.resolution**2
 
-		mesh_preds = np.zeros([n_points, self.n_classes])
-
-		for i in range(0, n_points, self.batch_size):
-			n_preds = min(i+self.batch_size, n_points)
-			batch = grid_samples[i:n_preds]
-			# add epsilon for stability
-			mesh_preds[i:n_preds] = np.array(self.model(batch)) + 1e-8
+		mesh_preds = self._predict_batches(grid_samples)
+		mesh_preds = mesh_preds + 1e-8
 
 		self.mesh_classes = mesh_preds.argmax(axis=1)
 		mesh_max_class = max(self.mesh_classes)
