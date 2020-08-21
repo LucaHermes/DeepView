@@ -6,7 +6,7 @@ This is an implementation of the DeepView framework that was presented in the pa
 ## Requirements
 
 All requirements to run DeepView are in ```requirements.txt```. 
-To run the notebook ```PyTorch```/```torchvision``` and ```Tensorflow 2``` are required as well. We ran the Demo with versions ```torch==1.3.1```, ```torchvision==0.4.2```, ```tensorflow==2.0.0``` or for gpu support ```tensorflow-gpu==2.0.0```.
+Most of the deep netowrks in the notebooks are models implemented in ```PyTorch```/```torchvision``` but we have also an example for ```Tensorflow 2``` models. We ran the Demo with versions ```torch==1.3.1```, ```torchvision==0.4.2```, ```tensorflow==2.0.0``` or for gpu support ```tensorflow-gpu==2.0.0```.
 
 ## Installation
 
