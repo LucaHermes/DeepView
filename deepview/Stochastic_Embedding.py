@@ -40,7 +40,7 @@ def euclid(x_,r_,s_,sigma_,nn_,a=1,b=1, y_=None, H_=None):
 @jit(nopython=True, fastmath=True, parallel=True)
 def euclid__(x_,r_,s_,sigma_,nn_,a,b, y_, H_):
     n_execs, n_samps, m_dim, n_dim = nn_.shape[0], nn_.shape[1], r_.shape[1], s_.shape[1]
-    
+
     for k in range(n_execs):
         w_ = np.zeros( (n_samps) , dtype=np.float32 )
         w_i_div_sigma_i_sum = 0
@@ -57,10 +57,11 @@ def euclid__(x_,r_,s_,sigma_,nn_,a,b, y_, H_):
         for j in range(n_dim):
             y_[k,j] /= w_i_div_sigma_i_sum
         for samp in range(n_samps):
+            i = nn_[k,samp]
             dist = 0
             for j in range(n_dim):
                 dist += (y_[k,j]-s_[i,j])**2
-            logv_i = -dist/sigma_[samp]
+            logv_i = -dist/sigma_[i]
             w_i = w_[samp]
             H_[k] += w_i*logv_i + (1-w_i)*(1-np.exp(logv_i))
     return y_, H_
@@ -135,7 +136,7 @@ def compute_H__(x_,y_,r_,s_,sigma_,n_samps,use_all_data,nn_,a,b, H_,att_,rep_, c
             dist = 0
             for j in range(n_dim):
                 dist += (y_[k,j]-s_[i,j])**2
-            logv_i = -dist/sigma_[samp]
+            logv_i = -dist/sigma_[i]
 
             att_k, rep_k = att_k+w_i*logv_i , rep_k+(1-w_i)*(1-np.exp(logv_i))
         if compute_H_only:
@@ -201,100 +202,6 @@ def select_neighbors(candidates):
                     l = l+1
                     j = (j+1)%n_select
         return result
-
-@jit(nopython=True, fastmath=True, parallel=True)
-def dist_each(X,Ys,nn):
-    n_execs, n_samps, n_dim = nn.shape[0], nn.shape[1], Ys.shape[1]
-    dists = np.zeros( (n_execs,n_samps) , dtype=np.float32 )
-    for i in range(n_execs):
-        x_i = X[i]
-        for samp in range(n_samps):
-            #k = nn[i,samp]
-            y_k = Ys[nn[i,samp]]
-            dist = 0
-            for d in range(n_dim):
-                dist += (x_i[d]-y_k[d])**2
-            dists[i,samp] = dist
-    return dists
-
-@jit(nopython=True, parallel=True, fastmath=True)
-def compute_sigma(distances, k, n_iter=64, bandwidth=1.0):
-    """Compute a continuous version of the distance to the kth nearest
-    neighbor. That is, this is similar to knn-distance but allows continuous
-    k values rather than requiring an integral k. In esscence we are simply
-    computing the distance such that the cardinality of fuzzy set we generate
-    is k.
-
-    Parameters
-    ----------
-    distances: array of shape (n_samples, n_neighbors)
-        Distances to nearest neighbors for each samples. Each row should be a
-        sorted list of distances to a given samples nearest neighbors.
-
-    k: float
-        The number of nearest neighbors to approximate for.
-
-    n_iter: int (optional, default 64)
-        We need to binary search for the correct distance value. This is the
-        max number of iterations to use in such a search.
-
-    local_connectivity: int (optional, default 1)
-        The local connectivity required -- i.e. the number of nearest
-        neighbors that should be assumed to be connected at a local level.
-        The higher this value the more connected the manifold becomes
-        locally. In practice this should be not more than the local intrinsic
-        dimension of the manifold.UMAP
-
-    bandwidth: float (optional, default 1)
-        The target bandwidth of the kernel, larger values will produce
-        larger return values.
-
-    Returns
-    -------
-    knn_dist: array of shape (n_samples,)
-        The distance to kth nearest neighbor, as suitably approximated.
-
-    nn_dist: array of shape (n_samples,)
-        The distance to the 1st nearest neighbor for each point.
-    """
-    target = np.log2(k) * bandwidth
-    result = np.zeros(distances.shape[0], dtype=np.float32)
-
-    for i in range(distances.shape[0]):
-        lo = 0.0
-        hi = NPY_INFINITY
-        mid = 1.0
-
-        for n in range(n_iter):
-
-            psum = 0.0
-            for j in range(1, distances.shape[1]):
-                d = distances[i, j]
-                if d > 0:
-                    psum += np.exp(-(d / mid))
-                else:
-                    psum += 1.0
-
-
-            if np.fabs(psum - target) < SMOOTH_K_TOLERANCE:
-                break
-
-            if psum > target:
-                hi = mid
-                mid = (lo + hi) / 2.0
-            else:
-                lo = mid
-                if hi == NPY_INFINITY:
-                    mid *= 2
-                else:
-                    mid = (lo + hi) / 2.0
-
-        result[i] = mid
-        
-        if result[i] < MIN_K_DIST_SCALE * np.mean(distances):
-             result[i] = MIN_K_DIST_SCALE * np.mean(distances)
-
-    return result
 
 def find_grid_nn(X,n_neighbors):
     return NearestNeighbors().fit(X).kneighbors(X, n_neighbors=n_neighbors, return_distance=False)
@@ -520,7 +427,7 @@ class StochasticEmbedding(BaseEstimator):
                         eta_b += np.inner(d,d)
                         
                     S = S - eta_a/eta_b * grad
-            
+
             self.s_ = S
             """err = np.linalg.norm(euclid(X,self.r_,Y,self.sigma_,nn,self._a,self._b )[0] - Y, axis=1)
             print(err.min(),err.mean(),err.max()," ",err.var())
