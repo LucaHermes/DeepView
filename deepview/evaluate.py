@@ -22,16 +22,47 @@ def leave_one_out_knn_dist_err(dists, labs, n_neighbors=5):
     # calculate the prediction error
     return sum(pred_labs != labs)/labs.shape[0]
 
-def evaluate_umap(deepview, X, Y, return_values=False):
-    if len(np.shape(X)) > 2:
-        bs = len(X)
-        X = X.reshape(bs, -1)
+def evaluate_umap(deepview, return_values=False, compare_unsup=False, X=[], Y=[]):
+    '''
+    Evaluates the dimensionality reduction step according to Q_knn in the paper.
 
-    neighbors = 30
+    Parameters
+    ----------
+    deepview : deepview object as returned by DeepView()
+    return_values : bool
+        True if the result of the evaluations should be returned, false if printed.
+    compare_unsup : bool
+        True if additionally an unsupervised DR should be computed and evaluated.
+    X : numpy array
+        original high-dimensional data used for unsupervised projection
+    Y : labels of the data
+        original high-dimensional data used for unsupervised projection - not needed? TODO
+    '''
+    neighbors = 5
     embedding_sup = deepview.embedded
     labs = deepview.y_true
     pred_labs = deepview.y_pred
     dists = deepview.distances
+    
+    if compare_unsup == False:
+        # calc dists in fish umap proj
+        fishUmap_dists = distan.pdist(embedding_sup)
+        fishUmap_dists = distan.squareform(fishUmap_dists)
+        #pred_fish_err   = leave_one_out_knn_dist_err(dists, pred_labs, n_neighbors=neighbors)
+        pred_fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, pred_labs, n_neighbors=neighbors)
+        
+        if return_values:
+            return pred_fishUm_err
+        else:
+            print("accuracy of a knn classifier in projecion space using classifier labels: ", pred_fishUm_err)
+            return
+    
+    
+    # otherweise calculate more mesures for comparison
+    if len(np.shape(X)) > 2:
+        bs = len(X)
+        X = X.reshape(bs, -1)
+    
 
     umap_unsup = umap.UMAP(n_neighbors=neighbors, random_state=11*12*13)
     embedding_unsup = umap_unsup.fit_transform(X)
@@ -47,16 +78,16 @@ def evaluate_umap(deepview, X, Y, return_values=False):
     euclUmap_dists = distan.pdist(embedding_unsup)
     euclUmap_dists = distan.squareform(euclUmap_dists)
 
-    label_eucl_err   = leave_one_out_knn_dist_err(eucl_dists, Y, n_neighbors=5)
-    label_fish_err   = leave_one_out_knn_dist_err(dists, Y, n_neighbors=5)
-    label_fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, Y, n_neighbors=5)
-    label_euclUm_err = leave_one_out_knn_dist_err(euclUmap_dists, Y, n_neighbors=5)
+    label_eucl_err   = leave_one_out_knn_dist_err(eucl_dists, Y, n_neighbors=neighbors)
+    label_fish_err   = leave_one_out_knn_dist_err(dists, Y, n_neighbors=neighbors)
+    label_fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, Y, n_neighbors=neighbors)
+    label_euclUm_err = leave_one_out_knn_dist_err(euclUmap_dists, Y, n_neighbors=neighbors)
 
     # comparison to classifier labels
-    pred_eucl_err   = leave_one_out_knn_dist_err(eucl_dists, pred_labs, n_neighbors=5)
-    pred_fish_err   = leave_one_out_knn_dist_err(dists, pred_labs, n_neighbors=5)
-    pred_fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, pred_labs, n_neighbors=5)
-    pred_euclUm_err = leave_one_out_knn_dist_err(euclUmap_dists, pred_labs, n_neighbors=5)
+    pred_eucl_err   = leave_one_out_knn_dist_err(eucl_dists, pred_labs, n_neighbors=neighbors)
+    pred_fish_err   = leave_one_out_knn_dist_err(dists, pred_labs, n_neighbors=neighbors)
+    pred_fishUm_err = leave_one_out_knn_dist_err(fishUmap_dists, pred_labs, n_neighbors=neighbors)
+    pred_euclUm_err = leave_one_out_knn_dist_err(euclUmap_dists, pred_labs, n_neighbors=neighbors)
 
     if return_values:
         return {
