@@ -8,9 +8,6 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 
-# --------- Tensorflow ---------------------
-import tensorflow as tf
-
 # --------- SciPy libs ---------------------
 from sklearn.datasets import load_digits
 from sklearn.tree import DecisionTreeClassifier
@@ -66,17 +63,7 @@ def create_torch_model(device):
 	print(' * Best Test prec:\t', weights['best_prec1'])
 	return model
 
-def create_tf_model_intermediate():
-    dense1 = tf.keras.layers.Dense(64, activation='elu')
-    dense2 = tf.keras.layers.Dense(64, activation='elu')
-    dense3 = tf.keras.layers.Dense(10, activation='softmax')
-    # in order to access the intermediate embedding, split the model into two models
-    # model_embd will embed samples
-    model_embd = tf.keras.Sequential([dense1])
-    # model_head can make predictions based on the embedding from model_embd
-    model_head = tf.keras.Sequential([dense2, dense3])
-    whole_model = tf.keras.Sequential([model_embd, model_head])
-    return model_embd, model_head, whole_model
+
 
 def create_decision_tree(train_x, train_y, max_depth=8):
 	d_tree = DecisionTreeClassifier(max_depth=max_depth)
