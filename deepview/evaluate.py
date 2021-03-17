@@ -54,7 +54,7 @@ def evaluate_umap(deepview, return_values=False, compare_unsup=False, X=[], Y=[]
         if return_values:
             return pred_fishUm_err
         else:
-            print("accuracy of a knn classifier in projecion space using classifier labels: ", pred_fishUm_err)
+            print("error of a knn classifier in projecion space using classifier labels: ", pred_fishUm_err)
             return
     
     
