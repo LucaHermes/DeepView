@@ -44,6 +44,18 @@ def euclidian_distance(x, y, axis=(1, 2, 3)):
 	diff = (x - y).reshape(len(y),-1)
 	return np.linalg.norm(diff, axis=-1)
 
+def cosine_distance(x, y, axis=(1, 2, 3)):
+	'''This corresponds to d_s in the paper'''
+	dot = np.dot(x, np.transpose(y, (0, 2, 1))).reshape(len(y),-1)
+
+	denom = (np.linalg.norm(x, axis=-1) * np.linalg.norm(y, axis=-1))
+
+	cos_sim = (dot / denom)
+
+	cos_diff = np.abs(1 - cos_sim.reshape(len(y)))
+
+	return cos_diff
+
 def predict_many(model, x, n_classes, batch_size):
 	# x -> (row_len, interpol, data_shape)
 	orig_shape = np.shape(x)
@@ -67,28 +79,102 @@ def predict_many(model, x, n_classes, batch_size):
 	np_preds = np.vsplit(preds, orig_shape[0])
 	return np.array(np_preds)
 
-def distance_row(model, x, y, n, batch_size, n_classes):
+def disc_distance_row(model, x, y, n, batch_size, n_classes):
 	y = y[:,np.newaxis]
 
 	steps = np.arange(1, n+2)
 	sprev = steps-1 #np.where(steps-1 < 0, 0, steps-1)
-    
+
 	p_prev = p_ni_row(x, y, n+1, sprev)
 	p_i = p_ni_row(x, y, n+1, steps)
-	
-	djs = d_js(predict_many(model, p_prev, n_classes, batch_size),
-			   predict_many(model, p_i, n_classes, batch_size), axis=2)
-	
+
+	djs = d_js(predict_many(model, p_prev, n_classes, batch_size), # tasks),
+				   predict_many(model, p_i, n_classes, batch_size), axis=2)#, tasks), axis=2)
+
 	# distance measure based on classification
 	discriminative = np.sqrt(np.maximum(djs, 0.))
+	discriminative = discriminative.sum(axis=1)
+
+	return discriminative
+
+
+def euc_distance_row(model, x, y):
 	# euclidian distance measure based on structural differences
-	axes = tuple(range(2, len(x.shape)+1))
+	axes = tuple(range(2, len(x.shape) + 1))
 
-	euclidian = euclidian_distance(x, y, axis=axes)
+	y = y[:, np.newaxis]
+
+	control = euclidian_distance(x, y, axis=axes)
+
+	return control
+
+def cosine_distance_row(model, x, y):
+	# euclidian distance measure based on structural differences
+	axes = tuple(range(2, len(x.shape) + 1))
+
+	y = y[:, np.newaxis]
+
+	control = cosine_distance(x, y, axis=axes)
+
+	return  control
+
+
+# def distance_row(model, x, y, n, batch_size, n_classes):
+# 	y = y[:,np.newaxis]
+
+# 	steps = np.arange(1, n+2)
+# 	sprev = steps-1 #np.where(steps-1 < 0, 0, steps-1)
+    
+# 	p_prev = p_ni_row(x, y, n+1, sprev)
+# 	p_i = p_ni_row(x, y, n+1, steps)
 	
-	return discriminative.sum(axis=1), euclidian
+# 	djs = d_js(predict_many(model, p_prev, n_classes, batch_size),
+# 			   predict_many(model, p_i, n_classes, batch_size), axis=2)
+	
+# 	# distance measure based on classification
+# 	discriminative = np.sqrt(np.maximum(djs, 0.))
+# 	# euclidian distance measure based on structural differences
+# 	axes = tuple(range(2, len(x.shape)+1))
 
-def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes, verbose=True):
+# 	euclidian = euclidian_distance(x, y, axis=axes)
+	
+# 	return discriminative.sum(axis=1), euclidian
+
+# def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes, verbose=True):
+
+# 	n_xs = len(from_samples)
+# 	n_ys = len(to_samples)
+
+# 	# arrays to store distance
+# 	#  1. discriminative distance of classification
+# 	#  2. euclidian (structural) distance in data
+# 	discr_distances = np.zeros([n_xs, n_ys])
+# 	eucl_distances = np.zeros([n_xs, n_ys])
+
+# 	for i in range(n_xs):
+
+# 		x = from_samples[i]
+# 		x = x[np.newaxis]
+# 		ys = to_samples[i+1:]
+	
+# 		disc_row = np.zeros(n_ys)
+# 		eucl_row = np.zeros(n_ys)
+		
+# 		if len(ys) != 0:
+# 			discr, euclidian = distance_row(model, x, ys, n, batch_size, n_classes)
+# 			disc_row[i+1:] = discr
+# 			eucl_row[i+1:] = euclidian
+
+# 		discr_distances[i] = disc_row
+# 		eucl_distances[i] = eucl_row
+
+# 		if (i+1) % (n_xs//5) == 0:
+# 			if verbose:
+# 				print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
+
+# 	return discr_distances, eucl_distances
+def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes,
+					 metric, disc_dist, verbose=True):
 
 	n_xs = len(from_samples)
 	n_ys = len(to_samples)
@@ -97,27 +183,53 @@ def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes, 
 	#  1. discriminative distance of classification
 	#  2. euclidian (structural) distance in data
 	discr_distances = np.zeros([n_xs, n_ys])
-	eucl_distances = np.zeros([n_xs, n_ys])
+	control_distances = np.zeros([n_xs, n_ys])
 
-	for i in range(n_xs):
 
-		x = from_samples[i]
-		x = x[np.newaxis]
-		ys = to_samples[i+1:]
-	
-		disc_row = np.zeros(n_ys)
-		eucl_row = np.zeros(n_ys)
+	if disc_dist:
+		for i in range(n_xs):
+			x = from_samples[i]
+			x = x[np.newaxis]
+			ys = to_samples[i+1:]
+
+			disc_row = np.zeros(n_ys)
+
+			if len(ys) != 0:
+				discr = disc_distance_row(model, x, ys, n, batch_size, n_classes)
+				disc_row[i+1:] = discr
+				discr_distances[i] = disc_row
+
+
 		
-		if len(ys) != 0:
-			discr, euclidian = distance_row(model, x, ys, n, batch_size, n_classes)
-			disc_row[i+1:] = discr
-			eucl_row[i+1:] = euclidian
+	if metric == 'euclidean':
+		for i in range(n_xs):
 
-		discr_distances[i] = disc_row
-		eucl_distances[i] = eucl_row
+			x = from_samples[i]
+			x = x[np.newaxis]
+			ys = to_samples[i + 1:]
 
-		if (i+1) % (n_xs//5) == 0:
-			if verbose:
-				print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
+			control_row = np.zeros(n_ys)
 
-	return discr_distances, eucl_distances
+			if len(ys) != 0:
+				control = euc_distance_row(model, x, ys)
+				control_row[i + 1:] = control
+
+				control_distances[i] = control_row
+
+	if metric == 'cosine':
+		for i in range(n_xs):
+
+			x = from_samples[i]
+			x = x[np.newaxis]
+			ys = to_samples[i + 1:]
+
+			control_row = np.zeros(n_ys)
+
+			if len(ys) != 0:
+				control = cosine_distance_row(model, x, ys)
+				control_row[i + 1:] = control
+
+				control_distances[i] = control_row
+
+
+	return discr_distances, control_distances
