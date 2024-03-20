@@ -11,7 +11,8 @@ class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, n=5, 
 				 lam=0.65, resolution=100, cmap='tab10', interactive=True, verbose=True,
-				 title='DeepView', data_viz=None, mapper=None, inv_mapper=None, **kwargs):
+				 title='DeepView', data_viz=None, mapper=None, inv_mapper=None, metric=["cosine", "euclidean"],
+				 disc_dist=True, **kwargs):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
@@ -61,6 +62,16 @@ class DeepView:
 			or synthesised sample at the click location. If none is given, samples can still be visualized
 			automatically, as long as they have a shape like: (h,w), (h,w,3), (h,w,4), (3,h,w), (4,h,w).
 			In this case, the values are scaled to the interval [0, 1].
+   		metrics: list of distance calculations
+			This is a list of available distance functions which are calculated in the embedding spaces.
+			As of now, one has the choice between cosine and euclidean distance. We typically use euclidean in
+			computer vision applications and cosine in natural language processing.
+		disc_dist: Boolean
+			Since calculating the discriminative distance is the most time consuming portion of Deepview. We give
+			provide an option to skip it. If lambda = 1, then calculating the discriminative distance is superfluous.
+			So we recommend creating a conditional variable with the following logic:
+					disc_dist = (False if lam == 1 else True)
+			That is if lambda is one, then disc_dist is False. Otherwise, it's True.
 		mapper : object
 			An object that maps samples from the data input domain to 2D space. The object
 			must have the methods of deepview.embeddings.Mapper. fit is called with a distance matrix
@@ -99,6 +110,7 @@ class DeepView:
 		self.title = title
 		self.data_viz = data_viz
 		self._init_mappers(mapper, inv_mapper, kwargs)
+		self.background_at = np.array([])
 
 	@property
 	def num_samples(self):
@@ -133,6 +145,13 @@ class DeepView:
 		self.y_true = np.array([])
 		self.y_pred = np.array([])
 		self.classifier_view = np.array([])
+	
+	def get_output_shape(self,samples):
+		try:
+			output = self.model(samples[:0])
+			return output.shape[1]
+		except:
+			return self.n_classes
 
 	def close(self):
 		'''
@@ -213,12 +232,28 @@ class DeepView:
 		Predicts an array of samples batchwise.
 		'''
 		n_inputs = len(x)
+		# print(n_inputs)
 		preds = np.zeros([n_inputs, self.n_classes])
+		# print(preds.shape[1])
 
-		for i in range(0, n_inputs, self.batch_size):
-			n_preds = min(i + self.batch_size, n_inputs)
-			batch = x[i:n_preds]
-			preds[i:n_preds] = np.array(self.model(batch))
+
+		if self.get_output_shape(x) == 1:
+			preds = np.zeros([n_inputs, 1])
+			neg_preds = np.zeros([n_inputs, 1])
+			for i in range(0, n_inputs, self.batch_size):
+				n_preds = min(i + self.batch_size, n_inputs)
+				batch = x[i:n_preds]
+				preds[i:n_preds] = np.array(self.model(batch))
+				neg_preds[i:n_preds] = np.array(1-self.model(batch))
+
+			a = np.array([neg_preds,preds]).transpose()
+			b = np.reshape(a, (n_inputs, self.n_classes))
+			preds = b
+		else:
+			for i in range(0, n_inputs, self.batch_size):
+				n_preds = min(i + self.batch_size, n_inputs)
+				batch = x[i:n_preds]
+				preds[i:n_preds] = np.array(self.model(batch))
 
 		return preds
 
@@ -243,6 +278,7 @@ class DeepView:
 		self.embedded = self.mapper.transform(self.distances)
 		self.inverse.fit(self.embedded, self.samples)
 		self.classifier_view = self.compute_grid()
+		self.background_at = np.array([self.get_mesh_prediction_at(x, y) for x, y in self.embedded])
 
 	def queue_samples(self, samples, labels, preds):
 		'''
@@ -428,7 +464,7 @@ class DeepView:
 			self.sample_plots[c].set_data(data.transpose())
 
 		for c in range(self.n_classes):
-			data = self.embedded[np.logical_and(self.y_pred==c, self.y_true!=c)]
+			data = self.embedded[np.logical_and(self.y_pred==c, self.background_at!=c)]
 			self.sample_plots[self.n_classes+c].set_data(data.transpose())
 
 		if os.name == 'posix':
