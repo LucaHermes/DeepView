@@ -7,6 +7,7 @@ verbose = False
 
 # --- default stochastic embedding config -----
 # fraction of samples used as neighbors
+#### Change neighbor_frac and centroid_frac to 1.0 to eliminate strange triangles in plots
 neighbor_frac = 0.7
 # fraction of samples used as centroids
 centroid_frac = 0.7
