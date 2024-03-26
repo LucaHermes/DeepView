@@ -109,6 +109,8 @@ class DeepView:
 		self.interactive = interactive
 		self.title = title
 		self.data_viz = data_viz
+		self.metric = metric
+		self.disc_dist = disc_dist
 		self._init_mappers(mapper, inv_mapper, kwargs)
 		self.background_at = np.array([])
 
@@ -310,7 +312,7 @@ class DeepView:
 
 		# calculate new distances
 		new_discr, new_eucl = calculate_fisher(self.model, samples, self.samples, 
-			self.n, self.batch_size, self.n_classes, self.verbose)
+			self.n, self.batch_size, self.n_classes, self.metric, self.disc_dist, self.verbose)
 		# add new distances
 		self.discr_distances = self.update_matrix(self.discr_distances, new_discr)
 		self.eucl_distances = self.update_matrix(self.eucl_distances, new_eucl)
