@@ -198,6 +198,10 @@ def calculate_fisher(model, from_samples, to_samples, n, batch_size, n_classes,
 				discr = disc_distance_row(model, x, ys, n, batch_size, n_classes)
 				disc_row[i+1:] = discr
 				discr_distances[i] = disc_row
+			
+			if (i+1) % (n_xs//5) == 0:
+				if verbose:
+					print('Distance calculation %.2f %%' % (((i+1)/n_xs)*100))
 
 
 		
