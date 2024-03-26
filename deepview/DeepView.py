@@ -11,7 +11,7 @@ class DeepView:
 
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, n=5, 
 				 lam=0.65, resolution=100, cmap='tab10', interactive=True, verbose=True,
-				 title='DeepView', data_viz=None, mapper=None, inv_mapper=None, metric=["cosine", "euclidean"],
+				 title='DeepView', data_viz=None, mapper=None, inv_mapper=None, metric="euclidean",
 				 disc_dist=True, **kwargs):
 		'''
 		This class can be used to embed high dimensional data in
@@ -62,7 +62,7 @@ class DeepView:
 			or synthesised sample at the click location. If none is given, samples can still be visualized
 			automatically, as long as they have a shape like: (h,w), (h,w,3), (h,w,4), (3,h,w), (4,h,w).
 			In this case, the values are scaled to the interval [0, 1].
-   		metrics: list of distance calculations
+   		metrics: list of distance calculations; ["cosine", "euclidean"] Default is 'euclidean'
 			This is a list of available distance functions which are calculated in the embedding spaces.
 			As of now, one has the choice between cosine and euclidean distance. We typically use euclidean in
 			computer vision applications and cosine in natural language processing.
