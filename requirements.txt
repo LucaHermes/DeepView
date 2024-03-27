@@ -4,3 +4,11 @@ scikit-learn>=0.23
 scipy>=1.4.0
 umap-learn>=0.4.2
 PyQt5>=5.13.2
+tensorflow[and-cuda]
+tensorflow_hub
+datasets
+tensorflow_text
+jupyter
+chardet
+transformers
+evaluate
