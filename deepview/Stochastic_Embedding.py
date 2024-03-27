@@ -12,6 +12,7 @@ from sklearn.utils import check_array
 from sklearn.cluster import KMeans
 from sklearn.neighbors import NearestNeighbors
 from scipy.spatial import Delaunay
+from scipy.spatial import distance
 
 from scipy.sparse import csr_matrix, eye
 from scipy.sparse.linalg import spsolve as lin_solve
@@ -19,6 +20,21 @@ from scipy.sparse.linalg import spsolve as lin_solve
 SMOOTH_K_TOLERANCE = 1e-5
 MIN_K_DIST_SCALE = 1e-3
 NPY_INFINITY = np.inf
+
+
+def euclid_all(x_,r_,s_,sigma_,a=1,b=1, y_=None, H_=None):
+    #n_execs, n_dim = x_.shape[0], s_.shape[1]
+    
+    #y_ = np.zeros( ( n_execs,n_dim ) , dtype=np.float32 )
+    #H_ = np.zeros( (n_execs) , dtype=np.float32 )
+    
+    W = weight_all__(x_,r_,sigma_,a,b)
+    y = W @ s_
+    
+    # TODO: also calc H
+    
+    return y
+
 
 def euclid(x_,r_,s_,sigma_,nn_,a=1,b=1, y_=None, H_=None):
     n_execs, n_dim = nn_.shape[0], s_.shape[1]
@@ -83,6 +99,24 @@ def weight__(x_,r_,sigma_,nn_,a,b):
             w_[k,samp] = w_ki
         for samp in range(n_samps):
             w_[k,samp] /= w_i_div_sigma_i_sum
+    return w_
+    
+#@jit(nopython=True, fastmath=True, parallel=True)
+def weight_all__(x_,r_,sigma_,a,b):
+    n_new, n_data  = x_.shape[0], r_.shape[0]
+    
+
+    #w_ = distance.squareform(distance.pdist(x_, 'sqeuclidean'))
+    w_ = distance.cdist(x_, r_, 'sqeuclidean')
+    w_ = 1/(1+a*np.power(w_,b))
+    
+    # normalize
+    for k in range(n_data):
+        w_[:,k] = w_[:,k] / sigma_[k]
+    
+    for k in range(n_new):
+        w_[k,:] = w_[k,:] / np.sum(w_[k,:])
+
     return w_
 
 def compute_H(x_,y_,r_,s_,sigma_,nn_=None,a=1,b=1, H_=None,att_=None,rep_=None, compute_H_only=True):
@@ -280,6 +314,93 @@ class StochasticEmbedding(BaseEstimator):
         else:
             self._a, self._b = np.float32(self.a), np.float32(self.b)
         
+        if self.n_smoothing_neighbors is None:
+            self._n_smoothing_neighbors = 2**X.shape[1]+1
+        else:
+            self._n_smoothing_neighbors = self.n_smoothing_neighbors
+
+        if self.verbose:
+            print(str(self))
+
+        
+        
+        if self.verbose:
+            print("compute sigma")
+        # TODO: get the ones from UMAP
+        self.sigma_ = np.ones(X.shape[0])
+        
+        if not(direct_adaption):
+            self.s_ = Y
+        else:
+            if self.verbose:
+                print("compute s")
+            W = weight_all__(self.r_,self.r_,self.sigma_,self._a,self._b)
+            
+
+            
+            S = np.copy(Y)
+            if F is None:
+                euc_itr = max_itr
+            else:
+                euc_itr = int(max_itr/2)
+            
+            for i in range(euc_itr):
+                E = (W @ S - Y)
+                #if i % 50 == 0:
+                #    print("eucl err ", np.linalg.norm(E, axis=1).mean())
+                S = S - eta * W.transpose() @ E
+            
+
+            self.s_ = S
+            """err = np.linalg.norm(euclid_all(X,self.r_,Y,self.sigma_,self._a,self._b ) - Y, axis=1)
+            print(err.min(),err.mean(),err.max()," ",err.var())
+            err = np.linalg.norm(euclid_all(X,self.r_,self.s_,self.sigma_,self._a,self._b ) - Y, axis=1)
+            print(err.min(),err.mean(),err.max()," ",err.var())"""
+        
+        return self
+    
+    
+    def _fit_triang(self, X, Y, lab=None, direct_adaption=True, eta=0.1, max_itr=500, F=None):
+        """Fit X into an embedded space.
+
+        Optionally use y for supervised dimension reduction.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features) or (n_samples, n_samples)
+            If the metric is 'precomputed' X must be a square distance
+            matrix. Otherwise it contains a sample per row. If the method
+            is 'exact', X may be a sparse matrix of type 'csr', 'csc'
+            or 'coo'.
+
+        y : array, shape (n_samples)
+            A target array for supervised dimension reduction. How this is
+            handled is determined by parameters UMAP was instantiated with.
+            The relevant attributes are ``target_metric`` and
+            ``target_metric_kwds``.
+        """
+        X = check_array(X, dtype=np.float32, accept_sparse="csr")
+        Y = check_array(Y, dtype=np.float32, accept_sparse="csr")
+        
+        if len(Y.shape) != 2:
+            raise ValueError("Shape missmatch, expected (samples,feature)")
+        if len(X.shape) != 2:
+            raise ValueError("Shape missmatch, expected (samples,components)")
+        
+        if X.shape[0] != Y.shape[0]:
+            raise ValueError("Shape missmatch, sample")
+        
+        #self.s_ = Y
+        self.r_ = X
+
+        # Handle all the optional arguments, setting default
+        self._validate_parameters()
+        
+        if self.a is None or self.b is None:
+            self._a, self._b = np.float32(1), np.float32(1)
+        else:
+            self._a, self._b = np.float32(self.a), np.float32(self.b)
+        
         if self.n_centroids is None:
             if lab is None:
                 n_centroids = min(int(np.ceil( Y.shape[0]**0.5 )),Y.shape[0])
@@ -436,15 +557,23 @@ class StochasticEmbedding(BaseEstimator):
         
         return self
     
+    
+    
     def find_nn(self, X):
         return select_neighbors(self._centroied_neighbors[self._triangolation.simplices[self._triangolation.find_simplex(X)]])
-    
+        
     def _transform(self,x,return_H=None):
         if self.verbose:
             print("compute initial embedding")
-        nn = self.find_nn(x)
-        y,H = euclid(x,self.r_,self.s_,self.sigma_,nn,self._a,self._b )
-        if self.verbose:
+        if hasattr(self, '_triangolation'):
+            nn = self.find_nn(x)
+            y,H = euclid(x,self.r_,self.s_,self.sigma_,nn,self._a,self._b )
+        else:
+            y = euclid_all(x,self.r_,self.s_,self.sigma_,self._a,self._b ) 
+        
+        return y
+        
+        """if self.verbose:
             print("iterative smoothing")
         y = smooth(y,H,find_grid_nn(x, self._n_smoothing_neighbors),self.n_smoothing_epochs,in_place=False)
         if return_H is None:
@@ -457,5 +586,5 @@ class StochasticEmbedding(BaseEstimator):
             elif return_H is "all":
                 return y, compute_H(x,y,self.r_,self.s_,self.sigma_,nn_=None,a=self._a,b=self._b,H_=H)
             else:
-                raise ValueError("Unexpected return_H value, possible values are None, 'fast', 'all'")
+                raise ValueError("Unexpected return_H value, possible values are None, 'fast', 'all'")"""
 
