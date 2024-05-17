@@ -1,5 +1,6 @@
 from deepview.embeddings import init_umap, init_inv_umap
 from deepview.fisher_metric import calculate_fisher
+from deepview.DeepViewSelector import DeepViewSelector
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -12,7 +13,7 @@ class DeepView:
 	def __init__(self, pred_fn, classes, max_samples, batch_size, data_shape, n=5, 
 				 lam=0.65, resolution=100, cmap='tab10', interactive=True, verbose=True,
 				 title='DeepView', data_viz=None, mapper=None, inv_mapper=None, metric="euclidean",
-				 disc_dist=True, **kwargs):
+				 disc_dist=True, selector=False, class_dict=None, **kwargs):
 		'''
 		This class can be used to embed high dimensional data in
 		2D. With an inverse mapping from 2D back into the sample
@@ -88,6 +89,8 @@ class DeepView:
 			See UMAP-parameters here: 
 			https://github.com/lmcinnes/umap/blob/master/umap/umap_.py#L1167
 		'''
+		if selector:
+			return super(DeepView,DeepViewSelector).__new__(DeepViewSelector)
 		self.model = pred_fn
 		self.classes = classes
 		self.n_classes = len(classes)
@@ -111,6 +114,7 @@ class DeepView:
 		self.data_viz = data_viz
 		self.metric = metric
 		self.disc_dist = disc_dist
+		self.class_dict = class_dict
 		self._init_mappers(mapper, inv_mapper, kwargs)
 		self.background_at = np.array([])
 
@@ -123,16 +127,24 @@ class DeepView:
 
 	@property
 	def distances(self):
-		'''
-		Combines euclidian with discriminative fisher distances.
-		Here the two distance measures are weighted with lambda
-		to emphasise structural properties (lambda > 0.5) or
-		to emphasise prediction properties (lambda < 0.5).
-		'''
+		"""Combines euclidian with discriminative fisher distances.
+
+        Here the two distance measures are weighted with lambda
+        to emphasise structural properties (lambda > 0.5) or
+        to emphasise prediction properties (lambda < 0.5).
+
+        """
 		eucl_scale = 1. / self.eucl_distances.max()
-		fisher_scale = 1. / self.discr_distances.max()
+
+		#since the discriminative distance calculation is optional,
+		#the logic below avoids a division by zero error
+		discr_dist_max = (
+			self.discr_distances.max() + 1 if self.discr_distances.max() == 0 else self.discr_distances.max()
+		)
+
+		fisher_scale = 1. / discr_dist_max
 		eucl = self.eucl_distances * eucl_scale * self.lam
-		fisher = self.discr_distances * fisher_scale * (1.-self.lam)
+		fisher = self.discr_distances * fisher_scale * (1. - self.lam)
 		stacked = np.dstack((fisher, eucl))
 		return stacked.sum(-1)
 
