@@ -67,12 +67,18 @@ class DeepView:
 			This is a list of available distance functions which are calculated in the embedding spaces.
 			As of now, one has the choice between cosine and euclidean distance. We typically use euclidean in
 			computer vision applications and cosine in natural language processing.
-		disc_dist: Boolean
+		disc_dist: bool
 			Since calculating the discriminative distance is the most time consuming portion of Deepview. We give
 			provide an option to skip it. If lambda = 1, then calculating the discriminative distance is superfluous.
 			So we recommend creating a conditional variable with the following logic:
 					disc_dist = (False if lam == 1 else True)
 			That is if lambda is one, then disc_dist is False. Otherwise, it's True.
+		selector: bool
+			This paprmeter will trigger the Selector subclass
+			Default is False
+		class_dict:
+			If the selector is instantiated then a class dictionary is passed as an argument
+			for the deepview image.
 		mapper : object
 			An object that maps samples from the data input domain to 2D space. The object
 			must have the methods of deepview.embeddings.Mapper. fit is called with a distance matrix
@@ -150,7 +156,7 @@ class DeepView:
 
 	def reset(self):
 		'''
-		Resets the state of DeepView to the point of initialization.
+			Resets the state of DeepView to the point of initialization.
 		'''
 		self.discr_distances = np.array([])
 		self.eucl_distances = np.array([])
