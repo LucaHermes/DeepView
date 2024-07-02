@@ -526,8 +526,8 @@ class DeepView:
 
 class DeepViewSelector(DeepView):
 
-    def __init__(self, *args, class_dict, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, class_dict=None, **kwargs):
+        super().__init__(*args, class_dict=class_dict, **kwargs)
         self.class_dict = class_dict
         self.selector = None
         """
