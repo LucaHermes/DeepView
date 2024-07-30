@@ -479,11 +479,11 @@ class DeepView:
         if self.use_selector:
             yps = []
             yts = []
-            for sample_id in sample_ids:
+            for sample_id in point:
                 yp, yt = (int(self.y_pred[sample_id]), int(self.y_true[sample_id]))
                 yps.append(yp)
                 yts.append(yt)
-            return sample_ids, yps, yts
+            return point, yps, yts
 
         else:
             sample_id = np.argmin(np.linalg.norm(self.embedded - point, axis=1))
