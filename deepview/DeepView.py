@@ -252,6 +252,7 @@ class DeepView:
         else:
             self.fig.canvas.mpl_connect('pick_event', self.show_sample)
             self.fig.canvas.mpl_connect('button_press_event', self.show_sample)
+
         self.disable_synth = False
         self.ax.set_axis_off()
         self.ax.legend()
